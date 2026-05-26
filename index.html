@@ -131,6 +131,17 @@ html,body{background:#0a0e1a;min-height:100vh}
 .fp-watch-alt{display:flex;align-items:center;justify-content:center;gap:4px;background:#131929;border:1px solid #2a3550;color:#8899bb;border-radius:6px;padding:8px 4px;font-size:12px;cursor:pointer;text-decoration:none;transition:all 0.15s;font-family:inherit}
 .fp-watch-alt:hover{border-color:#7df0b3;color:#7df0b3}
 .fp-no-watch{font-size:13px;color:#4a5a7a;font-style:italic;padding:10px 0}
+/* PLAYER */
+.player-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden;margin-bottom:10px;border:1px solid #1e2e48}
+.player-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.player-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.player-tab{background:#131929;border:1px solid #2a3550;color:#8899bb;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
+.player-tab:hover{border-color:#7df0b3;color:#7df0b3}
+.player-tab.on{background:#0d2a1e;border-color:#7df0b3;color:#7df0b3}
+.player-note{font-size:11px;color:#4a5a7a;background:#0f1628;border:1px solid #1e2e48;border-radius:6px;padding:8px 12px;margin-top:6px}
+.player-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0;background:#0a0e1a;color:#4a5a7a;font-size:13px;gap:10px;cursor:pointer}
+.player-placeholder-icon{font-size:48px;opacity:0.4}
+.player-placeholder:hover .player-placeholder-icon{opacity:0.7}
 /* COMMENT */
 .fp-comment-form{background:#0f1628;border:1px solid #1e2e48;border-radius:10px;padding:16px;margin-bottom:14px}
 .fp-comment-msg{font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:10px;display:none}
@@ -466,7 +477,7 @@ input::placeholder,textarea::placeholder{color:#4a5a7a}
       <div class="panel-title" style="margin-top:4px">İzleme Linkleri</div>
       <div class="link-row">
         <span class="link-lbl">▶️ Ana Link:</span>
-        <input id="lMain" placeholder="https://..." />
+        <input id="lMain" placeholder="https://... (embed URL veya iframe src)" />
       </div>
       <div class="link-row">
         <span class="link-lbl">🔗 Yedek 1:</span>
@@ -479,6 +490,10 @@ input::placeholder,textarea::placeholder{color:#4a5a7a}
       <div class="link-row">
         <span class="link-lbl">🔗 Yedek 3:</span>
         <input id="lA3" placeholder="https://..." />
+      </div>
+      <div class="link-row">
+        <span class="link-lbl">🎬 YouTube ID:</span>
+        <input id="nTrailer" placeholder="Fragman YouTube video ID (ör: dQw4w9WgXcQ)" />
       </div>
       <button class="btn btn-green" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="addFilm()">
         ➕ Film Ekle — Herkese Göster
@@ -610,6 +625,7 @@ input::placeholder,textarea::placeholder{color:#4a5a7a}
     <div class="link-row"><span class="link-lbl">🔗 Yedek 1:</span><input id="eLa1" placeholder="https://..." /></div>
     <div class="link-row"><span class="link-lbl">🔗 Yedek 2:</span><input id="eLa2" placeholder="https://..." /></div>
     <div class="link-row"><span class="link-lbl">🔗 Yedek 3:</span><input id="eLa3" placeholder="https://..." /></div>
+    <div class="link-row"><span class="link-lbl">🎬 YouTube ID:</span><input id="eTrailer" placeholder="Fragman YouTube ID" /></div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="btn btn-green" style="flex:1" onclick="saveEditFilm()">💾 Kaydet</button>
       <button class="btn" style="background:#131929;border:1px solid #2a3550;color:#8899bb" onclick="closeEditFilm()">İptal</button>
@@ -629,18 +645,18 @@ const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_KEY);
 
 // ======= DEMO VERİLER (Supabase yoksa) =======
 const DEMO_FILMS = [
-  {id:1,title:'Dune: İkinci Bölüm',title_orig:'Dune: Part Two',genre:'Bilim Kurgu',year:2024,rating:8.5,badge:'Yeni',quality:'4K',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Paul Atreides, Chani ve Fremenlerle güçlerini birleştirerek Arrakis üzerinde hakimiyet kurmaya çalışan düşmanlarına karşı savaşa girer.'},
-  {id:2,title:'Oppenheimer',title_orig:'Oppenheimer',genre:'Biyografi',year:2023,rating:8.3,badge:'',quality:'4K',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Atom bombasının geliştirilmesine yol açan Manhattan Projesi\'nin öncülüğünü yapan J. Robert Oppenheimer\'ın hikayesi.'},
-  {id:3,title:'Zavallılar',title_orig:'Poor Things',genre:'Dram',year:2023,rating:7.8,badge:'',quality:'HD',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/kCGlIMHnOm8JPXtGTu6MXWMW8Dc.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Müzmin bir maceracı avukat tarafından kurtarılan ve Viktorya döneminin erkek egemen dünyasını keşfeden genç bir kadın.'},
-  {id:4,title:'Furiosa: Bir Mad Max Destanı',title_orig:'Furiosa: A Mad Max Saga',genre:'Aksiyon',year:2024,rating:7.8,badge:'Yeni',quality:'4K',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/iADOJ8Zymht2JPMoy3R7xceZprc.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Furiosa, kıyamet sonrası dünyadan kaçmayı başarır ve kaptığı bir savaş arabasıyla güç odağının ortasında bulur.'},
-  {id:5,title:'Inside Out 2',title_orig:'Inside Out 2',genre:'Animasyon',year:2024,rating:7.8,badge:'Yeni',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/oxxrA7RhKR2dtycrPLUxzRFuCSo.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Riley ergenlik çağına girerken, Neşe ve diğer duygular yeni duygu Endişe ile başa çıkmak zorunda kalır.'},
-  {id:6,title:'İç Savaş',title_orig:'Civil War',genre:'Aksiyon',year:2024,rating:7.2,badge:'Yeni',quality:'HD',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/sh7Rg8Er3tFcN9BpKIPOMvALgZd.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Amerika\'da iç savaşın patlak verdiği yakın bir gelecekte gazetecilerden oluşan bir grup tehlikeli yolculuğa çıkar.'},
-  {id:7,title:'Godzilla x Kong: Yeni İmparatorluk',title_orig:'Godzilla x Kong: The New Empire',genre:'Aksiyon',year:2024,rating:6.3,badge:'',quality:'4K',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/z1p34vh7dEOnLDmyCrlUVLuoDzd.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Kong ve Godzilla, insanlığın varlığını tehdit eden büyük bir tehlikeye karşı birleşmek zorunda kalır.'},
-  {id:8,title:'Wonka',title_orig:'Wonka',genre:'Komedi',year:2023,rating:7.0,badge:'',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/qhb1qOilapbapxWQn9jtRCMwXJF.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Willy Wonka\'nın ikonik çikolata fabrikasını kurmadan önceki yıllarda dünyayı hayal gücüyle değiştirme planları.'},
-  {id:9,title:'Ay Çiçeğinin Katilleri',title_orig:'Killers of the Flower Moon',genre:'Dram',year:2023,rating:7.6,badge:'',quality:'HD',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/dB6Krk806zeqd955CR9K48TzaO3.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Osage Nation\'da petrol keşfedilmesinin ardından zenginleşen yerlilere yönelik bir dizi cinayet.'},
-  {id:10,title:'Maymunlar Cehennemi: Yeni Krallık',title_orig:'Kingdom of the Planet of the Apes',genre:'Bilim Kurgu',year:2024,rating:6.8,badge:'Yeni',quality:'HD',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/gKkl37BQuKTanygYQG1pyYgLVgf.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Caesar\'dan nesiller sonra maymunlar egemen tür haline gelmiştir. Genç bir maymun gerçek mirası sorgular.'},
-  {id:11,title:'Göç',title_orig:'Migration',genre:'Animasyon',year:2023,rating:7.0,badge:'',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/ldfCF9RhR40mppkzmftxapaHeTo.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'New England gölünde mutlu bir hayat yaşayan ördek ailesi göç yolculuğuna çıkarak inanılmaz maceralar yaşar.'},
-  {id:12,title:'Aquaman ve Kayıp Krallık',title_orig:'Aquaman and the Lost Kingdom',genre:'Aksiyon',year:2023,rating:5.4,badge:'',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/7lTnXOy0iNtBAdRP3TZvaKJ77F6.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Kara Manta kötü güçler kazanınca Aquaman, Atlantis ve tüm dünyayı kurtarmak için eski düşmanı kardeşinden yardım ister.'},
+  {id:1,title:'Dune: İkinci Bölüm',title_orig:'Dune: Part Two',genre:'Bilim Kurgu',year:2024,rating:8.5,badge:'Yeni',quality:'4K',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'Way9FwdAB2M',description:'Paul Atreides, Chani ve Fremenlerle güçlerini birleştirerek Arrakis üzerinde hakimiyet kurmaya çalışan düşmanlarına karşı savaşa girer.'},
+  {id:2,title:'Oppenheimer',title_orig:'Oppenheimer',genre:'Biyografi',year:2023,rating:8.3,badge:'',quality:'4K',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'uYPbbksJxIY',description:'Atom bombasının geliştirilmesine yol açan Manhattan Projesi\'nin öncülüğünü yapan J. Robert Oppenheimer\'ın hikayesi.'},
+  {id:3,title:'Zavallılar',title_orig:'Poor Things',genre:'Dram',year:2023,rating:7.8,badge:'',quality:'HD',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/kCGlIMHnOm8JPXtGTu6MXWMW8Dc.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'RlbR5N6veqw',description:'Müzmin bir maceracı avukat tarafından kurtarılan ve Viktorya döneminin erkek egemen dünyasını keşfeden genç bir kadın.'},
+  {id:4,title:'Furiosa: Bir Mad Max Destanı',title_orig:'Furiosa: A Mad Max Saga',genre:'Aksiyon',year:2024,rating:7.8,badge:'Yeni',quality:'4K',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/iADOJ8Zymht2JPMoy3R7xceZprc.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'XJMuhwVlca4',description:'Furiosa, kıyamet sonrası dünyadan kaçmayı başarır ve kaptığı bir savaş arabasıyla güç odağının ortasında bulur.'},
+  {id:5,title:'Inside Out 2',title_orig:'Inside Out 2',genre:'Animasyon',year:2024,rating:7.8,badge:'Yeni',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/oxxrA7RhKR2dtycrPLUxzRFuCSo.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'LEjhY15eCx0',description:'Riley ergenlik çağına girerken, Neşe ve diğer duygular yeni duygu Endişe ile başa çıkmak zorunda kalır.'},
+  {id:6,title:'İç Savaş',title_orig:'Civil War',genre:'Aksiyon',year:2024,rating:7.2,badge:'Yeni',quality:'HD',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/sh7Rg8Er3tFcN9BpKIPOMvALgZd.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'pB_GHd8Hkxo',description:'Amerika\'da iç savaşın patlak verdiği yakın bir gelecekte gazetecilerden oluşan bir grup tehlikeli yolculuğa çıkar.'},
+  {id:7,title:'Godzilla x Kong: Yeni İmparatorluk',title_orig:'Godzilla x Kong: The New Empire',genre:'Aksiyon',year:2024,rating:6.3,badge:'',quality:'4K',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/z1p34vh7dEOnLDmyCrlUVLuoDzd.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'odM92ap8_c0',description:'Kong ve Godzilla, insanlığın varlığını tehdit eden büyük bir tehlikeye karşı birleşmek zorunda kalır.'},
+  {id:8,title:'Wonka',title_orig:'Wonka',genre:'Komedi',year:2023,rating:7.0,badge:'',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/qhb1qOilapbapxWQn9jtRCMwXJF.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'otNh9bTjXWA',description:'Willy Wonka\'nın ikonik çikolata fabrikasını kurmadan önceki yıllarda dünyayı hayal gücüyle değiştirme planları.'},
+  {id:9,title:'Ay Çiçeğinin Katilleri',title_orig:'Killers of the Flower Moon',genre:'Dram',year:2023,rating:7.6,badge:'',quality:'HD',lang:'Türkçe Altyazı',img:'https://image.tmdb.org/t/p/w500/dB6Krk806zeqd955CR9K48TzaO3.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'EP34Yoxs3FQ',description:'Osage Nation\'da petrol keşfedilmesinin ardından zenginleşen yerlilere yönelik bir dizi cinayet.'},
+  {id:10,title:'Maymunlar Cehennemi: Yeni Krallık',title_orig:'Kingdom of the Planet of the Apes',genre:'Bilim Kurgu',year:2024,rating:6.8,badge:'Yeni',quality:'HD',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/gKkl37BQuKTanygYQG1pyYgLVgf.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'XtLDMCnSMXA',description:'Caesar\'dan nesiller sonra maymunlar egemen tür haline gelmiştir. Genç bir maymun gerçek mirası sorgular.'},
+  {id:11,title:'Göç',title_orig:'Migration',genre:'Animasyon',year:2023,rating:7.0,badge:'',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/ldfCF9RhR40mppkzmftxapaHeTo.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'WDgpOUQHoIs',description:'New England gölünde mutlu bir hayat yaşayan ördek ailesi göç yolculuğuna çıkarak inanılmaz maceralar yaşar.'},
+  {id:12,title:'Aquaman ve Kayıp Krallık',title_orig:'Aquaman and the Lost Kingdom',genre:'Aksiyon',year:2023,rating:5.4,badge:'',quality:'HD',lang:'Türkçe Dublaj',img:'https://image.tmdb.org/t/p/w500/7lTnXOy0iNtBAdRP3TZvaKJ77F6.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',trailer:'sxnRBMOUaLE',description:'Kara Manta kötü güçler kazanınca Aquaman, Atlantis ve tüm dünyayı kurtarmak için eski düşmanı kardeşinden yardım ister.'},
 ];
 const DEMO_SERIES = [
   {id:101,title:'Squid Game 2. Sezon',title_orig:'Squid Game Season 2',genre:'Gerilim',year:2024,rating:7.5,badge:'Yeni',quality:'HD',lang:'Türkçe Dublaj + Altyazı',img:'https://image.tmdb.org/t/p/w500/dDlEmu3EZ0Pgg93K2SVNLCjCSvE.jpg',l_main:'',l_a1:'',l_a2:'',l_a3:'',description:'Seong Gi-hun, oyunları durdurmaya yemin ederek geri döner. Bu sefer her şey daha tehlikeli.'},
@@ -886,6 +902,10 @@ function goBack(){
   window.scrollTo(0,0);
 }
 
+// Oynatıcı kaynağı takibi
+let _playerSources = [];
+let _playerActive = 0;
+
 function renderFilmPage(f){
   const stars=f.rating
     ?'<span style="background:#f5c518;color:#000;font-weight:800;padding:2px 6px;border-radius:3px;font-size:11px">IMDb</span> <span style="color:#f5c518;font-weight:700">'+parseFloat(f.rating).toFixed(1)+'</span> / 10'
@@ -896,15 +916,39 @@ function renderFilmPage(f){
   const posterHtml=f.img
     ?'<div class="fp-poster"><img src="'+f.img+'" alt="'+f.title.replace(/"/g,'&quot;')+'" onerror="this.parentElement.outerHTML=\'<div class=fp-poster-placeholder>🎬</div>\'" /></div>'
     :'<div class="fp-poster-placeholder">🎬</div>';
-  const mainBtn=f.l_main
-    ?'<a class="fp-watch-main" href="'+f.l_main+'" target="_blank">▶ Şimdi İzle — Ana Sunucu</a>'
-    :'<div class="fp-no-watch">Henüz izleme bağlantısı eklenmedi.</div>';
-  const alts=[f.l_a1,f.l_a2,f.l_a3].map((u,i)=>u
-    ?'<a class="fp-watch-alt" href="'+u+'" target="_blank">🔗 Yedek Sunucu '+(i+1)+'</a>'
-    :'').join('');
-  const hasAlts=f.l_a1||f.l_a2||f.l_a3;
   const origLine=f.title_orig&&f.title_orig!==f.title
     ?'<div style="font-size:12px;color:#4a5a7a;margin-top:2px">'+f.title_orig+'</div>':'';
+
+  // Oynatıcı kaynaklarını oluştur
+  _playerSources=[];
+  if(f.l_main) _playerSources.push({label:'▶ Ana Sunucu',url:f.l_main,type:'embed'});
+  if(f.l_a1)   _playerSources.push({label:'🔗 Yedek 1',url:f.l_a1,type:'embed'});
+  if(f.l_a2)   _playerSources.push({label:'🔗 Yedek 2',url:f.l_a2,type:'embed'});
+  if(f.l_a3)   _playerSources.push({label:'🔗 Yedek 3',url:f.l_a3,type:'embed'});
+  if(f.trailer) _playerSources.push({label:'🎬 Fragman',url:'https://www.youtube.com/embed/'+f.trailer+'?autoplay=1&rel=0',type:'youtube'});
+  _playerActive=0;
+
+  // Oynatıcı tab butonları
+  const tabBtns=_playerSources.map((s,i)=>
+    '<button class="player-tab'+(i===0?' on':'')+'" onclick="switchPlayer('+i+')">'+s.label+'</button>'
+  ).join('');
+
+  // İlk oynatıcı iframe
+  const firstSrc=_playerSources.length?_playerSources[0].url:'';
+  const playerHtml='<div class="fp-section">'
+    +'<div class="fp-section-title">🎬 Film İzle</div>'
+    +(_playerSources.length
+      ?'<div class="player-tabs" id="playerTabs">'+tabBtns+'</div>'
+       +'<div class="player-wrap"><iframe id="mainPlayer" src="'+firstSrc+'" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe></div>'
+       +'<div class="player-note">⚠️ Film yüklenmiyorsa başka sunucuyu deneyin. Yedek sunucular aşağıdaki sekmelerde mevcut.</div>'
+      :'<div class="player-wrap">'
+       +'<div class="player-placeholder" onclick="alert(\'Henüz izleme bağlantısı eklenmedi. Yakında eklenecek!\')">'
+       +'<div class="player-placeholder-icon">▶</div>'
+       +'<div>Bağlantı henüz eklenmedi</div>'
+       +'<div style="font-size:11px;color:#2a3550;margin-top:4px">Admin panelinden eklenebilir</div>'
+       +'</div></div>'
+    )
+    +'</div>';
 
   document.getElementById('filmPageContent').innerHTML=
     '<div class="fp-hero">'+posterHtml
@@ -917,10 +961,7 @@ function renderFilmPage(f){
     +'<div class="fp-genre-tags"><span class="fp-genre-tag">'+f.genre+'</span></div>'
     +(f.description?'<div class="fp-desc">'+f.description+'</div>':'')
     +'</div></div>'
-    +'<div class="fp-section"><div class="fp-section-title">İzleme Bağlantıları</div>'
-    +mainBtn
-    +(hasAlts?'<div class="fp-watch-alts">'+alts+'</div>':'')
-    +'</div>'
+    +playerHtml
     +'<div class="fp-section"><div class="fp-section-title">Yorumlar</div>'
     +'<div class="fp-comment-form">'
     +'<div id="commentMsg" class="fp-comment-msg"></div>'
@@ -932,6 +973,15 @@ function renderFilmPage(f){
     +'</div>';
 
   loadComments(f.id);
+}
+
+function switchPlayer(idx){
+  if(!_playerSources[idx])return;
+  _playerActive=idx;
+  document.getElementById('mainPlayer').src=_playerSources[idx].url;
+  document.querySelectorAll('#playerTabs .player-tab').forEach((b,i)=>{
+    b.classList.toggle('on',i===idx);
+  });
 }
 
 // ======= YORUMLAR =======
@@ -1078,6 +1128,7 @@ async function addFilm(){
     l_a1:document.getElementById('lA1').value.trim(),
     l_a2:document.getElementById('lA2').value.trim(),
     l_a3:document.getElementById('lA3').value.trim(),
+    trailer:document.getElementById('nTrailer').value.trim(),
   };
   setSyncStatus(null,'Kaydediliyor...');
   try{
@@ -1087,7 +1138,7 @@ async function addFilm(){
       const newId=Math.max(0,...films.map(f=>f.id))+1;
       films.unshift({id:newId,...payload});
     }
-    ['nTitle','nTitleOrig','nYear','nRating','nBadge','nImg','nDesc','lMain','lA1','lA2','lA3'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['nTitle','nTitleOrig','nYear','nRating','nBadge','nImg','nDesc','lMain','lA1','lA2','lA3','nTrailer'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('nGenre').selectedIndex=0;
     document.getElementById('nLang').selectedIndex=0;
     document.getElementById('nQuality').selectedIndex=0;
@@ -1149,6 +1200,7 @@ function openEditFilm(id){
   document.getElementById('eLa1').value=f.l_a1||'';
   document.getElementById('eLa2').value=f.l_a2||'';
   document.getElementById('eLa3').value=f.l_a3||'';
+  document.getElementById('eTrailer').value=f.trailer||'';
   document.getElementById('editFilmOk').style.display='none';
   document.getElementById('editFilmErr').style.display='none';
   previewEditImg();
@@ -1175,6 +1227,7 @@ async function saveEditFilm(){
     l_a1:document.getElementById('eLa1').value.trim(),
     l_a2:document.getElementById('eLa2').value.trim(),
     l_a3:document.getElementById('eLa3').value.trim(),
+    trailer:document.getElementById('eTrailer').value.trim(),
   };
   try{
     if(USE_SUPABASE){
