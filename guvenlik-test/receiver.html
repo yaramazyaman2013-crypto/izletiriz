@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Güvenlik Uyarı Ekranı</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131c;
+      --border: #252535;
+      --red: #e50914;
+      --orange: #f59e0b;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --text: #f1f1f1;
+      --muted: #606078;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Bekleme ekranı */
+    #standby {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      animation: fadeIn 0.5s ease;
+    }
+    .shield-icon { font-size: 64px; opacity: 0.15; }
+    .standby-title { font-size: 18px; font-weight: 700; color: var(--muted); }
+    .standby-sub   { font-size: 13px; color: var(--muted); }
+
+    .conn-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: 99px; margin-top: 8px;
+    }
+    .conn-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .conn-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .conn-dot.error { background: var(--red); }
+
+    /* Tam ekran uyarı */
+    #alertScreen {
+      display: none;
+      position: fixed; inset: 0;
+      align-items: center; justify-content: center;
+      z-index: 999;
+      animation: alertIn 0.4s cubic-bezier(.34,1.4,.64,1);
+    }
+    #alertScreen.visible { display: flex; }
+
+    @keyframes alertIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .alert-bg {
+      position: absolute; inset: 0;
+      opacity: 0.97;
+    }
+    .alert-bg.critical { background: radial-gradient(ellipse at center, #2a0508 0%, #0a0005 100%); }
+    .alert-bg.warning  { background: radial-gradient(ellipse at center, #1a1000 0%, #0a0800 100%); }
+    .alert-bg.info     { background: radial-gradient(ellipse at center, #040d1a 0%, #020508 100%); }
+
+    .alert-content {
+      position: relative; z-index: 1;
+      text-align: center;
+      max-width: 600px; width: 90%;
+      padding: 48px 40px;
+      border-radius: 20px;
+    }
+    .alert-content.critical {
+      border: 2px solid var(--red);
+      box-shadow: 0 0 80px rgba(229,9,20,0.5), inset 0 0 40px rgba(229,9,20,0.05);
+    }
+    .alert-content.warning {
+      border: 2px solid var(--orange);
+      box-shadow: 0 0 80px rgba(245,158,11,0.4), inset 0 0 40px rgba(245,158,11,0.05);
+    }
+    .alert-content.info {
+      border: 2px solid var(--blue);
+      box-shadow: 0 0 80px rgba(59,130,246,0.4), inset 0 0 40px rgba(59,130,246,0.05);
+    }
+
+    .alert-icon { font-size: 72px; display: block; margin-bottom: 20px; }
+
+    /* Nabız animasyonu kritik için */
+    .alert-content.critical .alert-icon {
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.1); }
+    }
+
+    .alert-badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 800; letter-spacing: 3px;
+      padding: 5px 16px; border-radius: 99px; margin-bottom: 24px;
+    }
+    .alert-content.critical .alert-badge {
+      background: rgba(229,9,20,0.2); color: #f87171;
+      border: 1px solid rgba(229,9,20,0.4);
+    }
+    .alert-content.warning .alert-badge {
+      background: rgba(245,158,11,0.2); color: var(--orange);
+      border: 1px solid rgba(245,158,11,0.35);
+    }
+    .alert-content.info .alert-badge {
+      background: rgba(59,130,246,0.2); color: #60a5fa;
+      border: 1px solid rgba(59,130,246,0.35);
+    }
+
+    .alert-message {
+      font-size: 20px; font-weight: 600;
+      line-height: 1.6; color: var(--text);
+      margin-bottom: 32px;
+    }
+
+    .alert-time {
+      font-size: 12px; color: var(--muted);
+      font-family: monospace; margin-bottom: 28px;
+    }
+
+    .alert-dismiss {
+      padding: 13px 36px; border: none; border-radius: 10px;
+      font-weight: 700; font-size: 15px; cursor: pointer;
+      transition: opacity 0.2s; letter-spacing: 0.3px;
+    }
+    .alert-content.critical .alert-dismiss { background: var(--red); color: #fff; }
+    .alert-content.warning  .alert-dismiss { background: var(--orange); color: #000; }
+    .alert-content.info     .alert-dismiss { background: var(--blue); color: #fff; }
+    .alert-dismiss:hover { opacity: 0.85; }
+
+    /* Geçmiş */
+    #history {
+      position: fixed; bottom: 20px; right: 20px;
+      max-width: 320px; display: flex; flex-direction: column; gap: 8px;
+      z-index: 50;
+    }
+    .hist-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 12px; display: flex; gap: 8px; align-items: flex-start;
+      opacity: 0.7; transition: opacity 0.2s;
+    }
+    .hist-item:hover { opacity: 1; }
+    .hist-level {
+      font-weight: 800; font-size: 10px; letter-spacing: 1px;
+      white-space: nowrap; padding-top: 1px;
+    }
+    .hist-level.critical { color: #f87171; }
+    .hist-level.warning  { color: var(--orange); }
+    .hist-level.info     { color: #60a5fa; }
+    .hist-msg { color: #aaa; line-height: 1.4; }
+    .hist-time { color: var(--muted); font-size: 10px; margin-top: 3px; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<!-- Bekleme ekranı -->
+<div id="standby">
+  <div class="shield-icon">🛡️</div>
+  <div class="standby-title">Güvenlik Uyarı Ekranı</div>
+  <div class="standby-sub">Admin panelinden uyarı gönderildiğinde burada görünecek.</div>
+  <div class="conn-status">
+    <div class="conn-dot" id="connDot"></div>
+    <span id="connText">Bağlanıyor...</span>
+  </div>
+</div>
+
+<!-- Tam ekran uyarı -->
+<div id="alertScreen">
+  <div class="alert-bg" id="alertBg"></div>
+  <div class="alert-content" id="alertContent">
+    <span class="alert-icon" id="alertIcon"></span>
+    <span class="alert-badge" id="alertBadge"></span>
+    <p class="alert-message" id="alertMessage"></p>
+    <p class="alert-time" id="alertTime"></p>
+    <button class="alert-dismiss" id="alertDismiss" onclick="dismiss()">Anladım</button>
+  </div>
+</div>
+
+<!-- Geçmiş -->
+<div id="history"></div>
+
+<script>
+const ICONS  = { critical: "⛔", warning: "⚠️", info: "ℹ️" };
+const LABELS = { critical: "KRİTİK", warning: "UYARI", info: "BİLGİ" };
+let alertHistory = [];
+
+function showAlert(data) {
+  const { level, message, timestamp } = data;
+
+  document.getElementById("alertBg").className      = "alert-bg " + level;
+  document.getElementById("alertContent").className  = "alert-content " + level;
+  document.getElementById("alertIcon").textContent   = ICONS[level];
+  document.getElementById("alertBadge").textContent  = LABELS[level];
+  document.getElementById("alertMessage").textContent = message;
+  document.getElementById("alertTime").textContent   =
+    "Gönderilme: " + new Date(timestamp).toLocaleString("tr-TR");
+  document.getElementById("alertDismiss").className  = "alert-dismiss";
+
+  document.getElementById("alertScreen").classList.add("visible");
+  document.body.style.overflow = "hidden";
+
+  // Geçmişe ekle
+  alertHistory.unshift({ level, message, timestamp });
+  if (alertHistory.length > 5) alertHistory.pop();
+  renderHistory();
+}
+
+function dismiss() {
+  document.getElementById("alertScreen").classList.remove("visible");
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") dismiss(); });
+
+function renderHistory() {
+  document.getElementById("history").innerHTML = alertHistory.map(h => `
+    <div class="hist-item">
+      <div>
+        <div class="hist-level ${h.level}">${LABELS[h.level]}</div>
+        <div class="hist-msg">${h.message.slice(0,80)}${h.message.length>80?"…":""}</div>
+        <div class="hist-time">${new Date(h.timestamp).toLocaleTimeString("tr-TR")}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* SSE bağlantısı */
+function connect() {
+  const dot  = document.getElementById("connDot");
+  const text = document.getElementById("connText");
+
+  const es = new EventSource("/events");
+
+  es.onopen = () => {
+    dot.className  = "conn-dot connected";
+    text.textContent = "Bağlı — uyarı bekleniyor";
+  };
+
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      showAlert(data);
+    } catch { /* ping satırları ignore */ }
+  };
+
+  es.onerror = () => {
+    dot.className  = "conn-dot error";
+    text.textContent = "Bağlantı kesildi — yeniden bağlanıyor...";
+    es.close();
+    setTimeout(connect, 3000);
+  };
+}
+
+connect();
+</script>
+</body>
+</html>
