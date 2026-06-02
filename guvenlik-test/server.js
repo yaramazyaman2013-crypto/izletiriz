@@ -2,6 +2,8 @@ const http = require("http");
 const net  = require("net");
 const path = require("path");
 const fs   = require("fs");
+const os   = require("os");
+const { exec } = require("child_process");
 
 const PORT = 3030;
 
@@ -123,6 +125,86 @@ const server = http.createServer(async (req, res) => {
       clearInterval(ping);
       receivers.delete(res);
       console.log(`[SSE] Alıcı ayrıldı. Toplam: ${receivers.size}`);
+    });
+    return;
+  }
+
+  /* Uzaktan Windows MessageBox — WMI/PsExec üzerinden */
+  if (req.method === "POST" && req.url === "/api/remote-alert") {
+    let parsed;
+    try { parsed = JSON.parse(await readBody(req)); } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Geçersiz JSON." }));
+      return;
+    }
+
+    const { ip, username, password, domain, message, level, title } = parsed;
+
+    if (!ip || !isValidIPv4(ip)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Geçerli bir hedef IP girin." }));
+      return;
+    }
+    if (!username || !password) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Hedef için Windows kullanıcı adı ve parola gerekli." }));
+      return;
+    }
+    if (!message) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Mesaj boş olamaz." }));
+      return;
+    }
+
+    const titleText = title || (
+      level === "critical" ? "Kritik Güvenlik Uyarısı"
+      : level === "warning"  ? "Güvenlik Uyarısı"
+      :                        "Sistem Bildirimi"
+    );
+    const iconCode = level === "critical" ? 16 : level === "warning" ? 48 : 64;
+    const safeMsg   = message.replace(/"/g, '""').replace(/\r?\n/g, ' ');
+    const safeTitle = titleText.replace(/"/g, '""');
+    const user = domain ? `${domain}\\${username}` : username;
+
+    const vbsCmd = `mshta.exe vbscript:Execute("MsgBox ""${safeMsg}"",${iconCode},""${safeTitle}"":close")`;
+    const platform = os.platform();
+    let cmd;
+
+    if (platform === "win32") {
+      cmd = `wmic /node:"${ip}" /user:"${user}" /password:"${password}" process call create '${vbsCmd}'`;
+    } else {
+      const wmiPayload = vbsCmd.replace(/'/g, "'\\''");
+      cmd = `impacket-wmiexec '${user}:${password}@${ip}' '${wmiPayload}' 2>&1 || ` +
+            `wmiexec.py '${user}:${password}@${ip}' '${wmiPayload}' 2>&1`;
+    }
+
+    console.log(`[REMOTE-ALERT] ${ip} ← ${level}: ${message.slice(0,60)}`);
+
+    exec(cmd, { timeout: 15000 }, (err, stdout, stderr) => {
+      const out = (stdout || "") + (stderr || "");
+      if (err) {
+        const detail = out.split("\n").slice(0, 8).join(" | ").slice(0, 600);
+        console.log(`[REMOTE-ALERT] HATA: ${err.message}`);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          error: "Uzaktan yürütme başarısız.",
+          detail: detail || err.message,
+          hints: [
+            "Hedefte SMB (445) ve WMI portları açık olmalı.",
+            "Verilen kullanıcı hedefte yerel Administrator yetkisinde olmalı.",
+            "Linux sunucudaysanız: pip install impacket",
+            "Windows Defender Firewall WMI'yi engellemiyor olmalı.",
+            "Hedefte UAC Remote Restrictions devre dışı veya domain hesabı kullanın.",
+          ],
+        }));
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        ok: true,
+        ip, level, message,
+        output: out.split("\n").slice(0, 6).join("\n").slice(0, 400),
+      }));
     });
     return;
   }
