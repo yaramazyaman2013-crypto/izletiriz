@@ -10,6 +10,9 @@ const COMMON_PORTS = [21, 22, 23, 25, 53, 80, 110, 143, 443, 445, 3306, 3389, 54
 /* ── SSE bağlı alıcılar ── */
 const receivers = new Set();
 
+/* ── Son uyarı (ajan polling için) ── */
+let latestAlert = null;
+
 function broadcast(payload) {
   const data = `data: ${JSON.stringify(payload)}\n\n`;
   for (const res of receivers) {
@@ -124,6 +127,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  /* Son uyarı — ajan polling için */
+  if (req.method === "GET" && req.url === "/api/latest-alert") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(latestAlert || {}));
+    return;
+  }
+
   /* Alıcı sayısı */
   if (req.method === "GET" && req.url === "/api/receivers") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -149,7 +159,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    broadcast({ level, message, timestamp: new Date().toISOString() });
+    const alert = { level, message, timestamp: new Date().toISOString() };
+  latestAlert = alert;
+  broadcast(alert);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ sent: receivers.size }));
     return;
