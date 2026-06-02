@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IP Güvenlik Test Paneli</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #16161f;
+      --border: #2a2a3a;
+      --red: #e50914;
+      --red-dim: rgba(229,9,20,0.12);
+      --orange: #ffa500;
+      --orange-dim: rgba(255,165,0,0.10);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.10);
+      --green: #4ade80;
+      --text: #ffffff;
+      --muted: #888888;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    .container { max-width: 700px; margin: 0 auto; }
+
+    /* Header */
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3);
+      border-radius: 8px; padding: 6px 14px; margin-bottom: 12px;
+      font-size: 13px; font-weight: 700; color: var(--red);
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .header { text-align: center; margin-bottom: 32px; }
+    .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .header p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+    /* Yasal uyarı */
+    .legal-banner {
+      background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.3);
+      border-radius: 8px; padding: 12px 16px; margin-bottom: 24px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .legal-banner p { color: var(--orange); font-size: 13px; line-height: 1.5; }
+    .legal-banner strong { font-weight: 700; }
+
+    /* Form */
+    .form-row { display: flex; gap: 10px; margin-bottom: 8px; }
+    input[type="text"] {
+      flex: 1; padding: 14px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 16px; font-family: monospace; outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--red); }
+    input[type="text"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-scan {
+      padding: 14px 28px; background: var(--red); border: none;
+      border-radius: 10px; color: #fff; font-weight: 700;
+      font-size: 14px; cursor: pointer; white-space: nowrap;
+      letter-spacing: 0.5px; transition: opacity 0.2s, background 0.2s;
+    }
+    .btn-scan:disabled { background: #555; cursor: not-allowed; }
+    .btn-scan:not(:disabled):hover { opacity: 0.85; }
+
+    .error-msg { color: #ff4d4d; font-size: 13px; padding-left: 4px; margin-top: 6px; display: none; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 48px 0; display: none; }
+    .spinner {
+      width: 48px; height: 48px; border: 3px solid var(--border);
+      border-top-color: var(--red); border-radius: 50%;
+      animation: spin 1s linear infinite; margin: 0 auto 16px;
+    }
+    .loading p { color: var(--muted); font-size: 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results { display: none; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Summary grid */
+    .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+    .summary-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 12px; text-align: center;
+    }
+    .summary-card .num { font-size: 26px; font-weight: 800; }
+    .summary-card .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* IP info */
+    .ip-info {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .ip-info .lbl { color: var(--muted); font-size: 12px; }
+    .ip-info .val { font-weight: 700; font-size: 15px; margin-top: 2px; }
+    .ip-info .val.mono { font-family: monospace; }
+
+    /* Open ports */
+    .section-title {
+      color: var(--text); font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
+    }
+    .port-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .port-tag {
+      background: rgba(229,9,20,0.15); border: 1px solid rgba(229,9,20,0.4);
+      border-radius: 6px; padding: 5px 12px; color: #ff6b6b;
+      font-family: monospace; font-size: 13px; font-weight: 600;
+    }
+    .port-tag span { color: var(--muted); font-weight: 400; }
+
+    /* Warning cards */
+    .warnings-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .warn-card {
+      border-radius: 10px; padding: 14px 16px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .warn-card.critical { background: var(--red-dim); border: 1px solid var(--red); }
+    .warn-card.warning  { background: var(--orange-dim); border: 1px solid var(--orange); }
+    .warn-card.info     { background: var(--blue-dim); border: 1px solid var(--blue); }
+    .warn-icon { font-size: 18px; line-height: 1; margin-top: 1px; flex-shrink: 0; }
+    .warn-level {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+      display: block; margin-bottom: 4px;
+    }
+    .warn-card.critical .warn-level { color: #ff4d4d; }
+    .warn-card.warning  .warn-level { color: var(--orange); }
+    .warn-card.info     .warn-level { color: #60a5fa; }
+    .warn-msg { color: #ddd; font-size: 14px; line-height: 1.5; }
+
+    /* Final verdict */
+    .verdict {
+      border-radius: 10px; padding: 14px 18px; text-align: center;
+    }
+    .verdict.bad  { background: rgba(229,9,20,0.08); border: 1px solid rgba(229,9,20,0.4); }
+    .verdict.good { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.3); }
+    .verdict p.main { font-weight: 700; font-size: 15px; }
+    .verdict.bad  p.main { color: #ff6b6b; }
+    .verdict.good p.main { color: var(--green); }
+    .verdict p.sub { color: #666; font-size: 12px; margin-top: 6px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">&#x1F6E1; Güvenlik Test Paneli</div>
+    <h1>IP Güvenlik Tarayıcı</h1>
+    <p>Test makinenizin IP adresini girerek yaygın güvenlik açıklarını tarayın.<br>
+       Yalnızca yetkili olduğunuz sistemlerde kullanın.</p>
+  </div>
+
+  <!-- Yasal uyarı -->
+  <div class="legal-banner">
+    <span style="font-size:18px;margin-top:2px">⚠️</span>
+    <p>Bu araç yalnızca <strong>yetkili güvenlik testleri</strong> içindir.
+       İzinsiz sistemlerde kullanmak <strong>yasal suçtur</strong> ve hukuki sonuçları olabilir.</p>
+  </div>
+
+  <!-- Form -->
+  <form id="scanForm">
+    <div class="form-row">
+      <input type="text" id="ipInput" placeholder="192.168.1.1" autocomplete="off" spellcheck="false" />
+      <button type="submit" class="btn-scan" id="scanBtn">Tara</button>
+    </div>
+    <p class="error-msg" id="errorMsg"></p>
+  </form>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p id="loadingText">Taranıyor, lütfen bekleyin...</p>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results"></div>
+
+</div>
+
+<script>
+const PORT_NAMES = {
+  21:"FTP", 22:"SSH", 23:"Telnet", 25:"SMTP", 53:"DNS",
+  80:"HTTP", 110:"POP3", 143:"IMAP", 443:"HTTPS", 445:"SMB",
+  3306:"MySQL", 3389:"RDP", 5432:"PostgreSQL", 8080:"HTTP-Alt", 8443:"HTTPS-Alt"
+};
+
+const LEVEL_META = {
+  critical: { icon: "⛔", label: "KRİTİK" },
+  warning:  { icon: "⚠️",  label: "UYARI"   },
+  info:     { icon: "ℹ️",  label: "BİLGİ"   },
+};
+
+function isValidIPv4(ip) {
+  return /^(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)$/.test(ip.trim());
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorMsg");
+  el.textContent = "⛔ " + msg;
+  el.style.display = "block";
+}
+
+function hideError() {
+  document.getElementById("errorMsg").style.display = "none";
+}
+
+function setLoading(active, ip = "") {
+  document.getElementById("loading").style.display = active ? "block" : "none";
+  document.getElementById("loadingText").textContent = active
+    ? `${ip} taranıyor — lütfen bekleyin...` : "";
+  document.getElementById("results").style.display = "none";
+  document.getElementById("ipInput").disabled = active;
+  document.getElementById("scanBtn").disabled = active;
+  document.getElementById("scanBtn").textContent = active ? "Taranıyor..." : "Tara";
+}
+
+function renderResults(data) {
+  const criticalCount = data.warnings.filter(w => w.level === "critical").length;
+  const warningCount  = data.warnings.filter(w => w.level === "warning").length;
+  const networkType   = data.isPrivate ? "Yerel Ağ (Private)" : "Genel İnternet (Public)";
+  const networkColor  = data.isPrivate ? "#4ade80" : "#ffa500";
+  const time          = new Date(data.timestamp).toLocaleTimeString("tr-TR");
+
+  const summaryCards = [
+    { label: "Taranan Port", value: data.scannedPorts, color: "#60a5fa" },
+    { label: "Açık Port",    value: data.openPorts.length, color: data.openPorts.length > 0 ? "#ffa500" : "#4ade80" },
+    { label: "Kritik Uyarı", value: criticalCount, color: criticalCount > 0 ? "#ff4d4d" : "#4ade80" },
+  ].map(s => `
+    <div class="summary-card">
+      <div class="num" style="color:${s.color}">${s.value}</div>
+      <div class="lbl">${s.label}</div>
+    </div>
+  `).join("");
+
+  const portTags = data.openPorts.map(({ port }) =>
+    `<span class="port-tag">${port} <span>(${PORT_NAMES[port] || "?"})</span></span>`
+  ).join("");
+
+  const openPortsSection = data.openPorts.length > 0 ? `
+    <p class="section-title">Açık Portlar</p>
+    <div class="port-list">${portTags}</div>
+  ` : "";
+
+  const warningCards = data.warnings.map(w => {
+    const m = LEVEL_META[w.level];
+    return `
+      <div class="warn-card ${w.level}">
+        <span class="warn-icon">${m.icon}</span>
+        <div>
+          <span class="warn-level">${m.label}</span>
+          <p class="warn-msg">${w.message}</p>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const verdictClass = criticalCount > 0 ? "bad" : "good";
+  const verdictText  = criticalCount > 0
+    ? `${criticalCount} kritik, ${warningCount} uyarı seviyesinde açık tespit edildi.`
+    : "Kritik güvenlik açığı tespit edilmedi.";
+
+  document.getElementById("results").innerHTML = `
+    <div class="summary-grid">${summaryCards}</div>
+
+    <div class="ip-info">
+      <div>
+        <div class="lbl">Hedef IP</div>
+        <div class="val mono">${data.ip}</div>
+      </div>
+      <div>
+        <div class="lbl">Ağ Türü</div>
+        <div class="val" style="color:${networkColor}">${networkType}</div>
+      </div>
+      <div>
+        <div class="lbl">Tarama Zamanı</div>
+        <div class="val" style="font-size:13px;color:#aaa">${time}</div>
+      </div>
+    </div>
+
+    ${openPortsSection}
+
+    <p class="section-title">Güvenlik Uyarıları (${data.warnings.length})</p>
+    <div class="warnings-list">${warningCards}</div>
+
+    <div class="verdict ${verdictClass}">
+      <p class="main">${verdictText}</p>
+      <p class="sub">Bu sonuçlar yalnızca yaygın portları kapsar. Tam penetrasyon testi için profesyonel araçlar kullanın.</p>
+    </div>
+  `;
+
+  document.getElementById("results").style.display = "block";
+}
+
+document.getElementById("scanForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hideError();
+
+  const ip = document.getElementById("ipInput").value.trim();
+
+  if (!isValidIPv4(ip)) {
+    showError("Lütfen geçerli bir IPv4 adresi girin. Örn: 192.168.1.1");
+    return;
+  }
+
+  setLoading(true, ip);
+
+  try {
+    const res = await fetch("/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || "Sunucu hatası.");
+
+    renderResults(data);
+  } catch (err) {
+    showError(err.message || "Bilinmeyen bir hata oluştu.");
+  } finally {
+    setLoading(false);
+  }
+});
+</script>
+</body>
+</html>
