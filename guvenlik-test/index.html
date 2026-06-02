@@ -369,6 +369,135 @@
     .severity.warning  { background: var(--orange-dim); color: var(--orange); }
     .severity.info     { background: var(--blue-dim); color: #60a5fa; }
 
+    /* ─── Uyarı Yöneticisi ─── */
+    .warn-builder { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 680px) { .warn-builder { grid-template-columns: 1fr; } }
+
+    .builder-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .builder-card h3 {
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px;
+    }
+
+    /* Seviye seçici */
+    .level-picker { display: flex; gap: 8px; margin-bottom: 18px; }
+    .level-btn {
+      flex: 1; padding: 10px 6px; border-radius: 8px; border: 1px solid var(--border);
+      background: none; color: var(--text2); font-size: 12px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.5px; transition: all 0.15s; text-align: center;
+    }
+    .level-btn:hover { border-color: var(--text2); color: var(--text); }
+    .level-btn.sel-critical { background: var(--red-dim); border-color: var(--red); color: #f87171; }
+    .level-btn.sel-warning  { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }
+    .level-btn.sel-info     { background: var(--blue-dim); border-color: var(--blue); color: #60a5fa; }
+
+    /* Şablonlar */
+    .template-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+    .tpl-item {
+      padding: 10px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+      cursor: pointer; font-size: 13px; color: var(--text2);
+      transition: all 0.15s; line-height: 1.4;
+    }
+    .tpl-item:hover { border-color: rgba(229,9,20,0.3); color: var(--text); background: var(--surface2); }
+    .tpl-item.selected { border-color: var(--red); color: var(--text); background: var(--red-dim); }
+
+    /* Mesaj textarea */
+    .msg-textarea {
+      width: 100%; min-height: 100px; padding: 12px 14px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px;
+      line-height: 1.5; resize: vertical; outline: none;
+      transition: border-color 0.2s; font-family: inherit;
+    }
+    .msg-textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow); }
+    .char-count { font-size: 11px; color: var(--muted); text-align: right; margin-top: 4px; }
+
+    /* Önizleme */
+    .preview-box {
+      border-radius: 12px; padding: 18px; min-height: 80px;
+      display: flex; gap: 12px; align-items: flex-start;
+      transition: all 0.25s;
+    }
+    .preview-box.critical { background: var(--red-dim); border: 1px solid rgba(229,9,20,0.35); }
+    .preview-box.warning  { background: var(--orange-dim); border: 1px solid rgba(245,158,11,0.3); }
+    .preview-box.info     { background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.3); }
+    .preview-box.empty    { background: var(--surface2); border: 1px dashed var(--border); justify-content: center; align-items: center; }
+    .preview-ico { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+    .preview-level {
+      font-size: 10px; font-weight: 800; letter-spacing: 2px;
+      display: block; margin-bottom: 5px;
+    }
+    .preview-box.critical .preview-level { color: #f87171; }
+    .preview-box.warning  .preview-level { color: var(--orange); }
+    .preview-box.info     .preview-level { color: #60a5fa; }
+    .preview-msg { font-size: 14px; color: #ddd; line-height: 1.55; }
+    .preview-empty-text { font-size: 13px; color: var(--muted); }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-show {
+      flex: 1; padding: 12px; background: var(--red); border: none;
+      border-radius: 10px; color: #fff; font-weight: 700; font-size: 14px;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-show:hover { opacity: 0.85; }
+    .btn-show:disabled { background: #333; color: #555; cursor: not-allowed; }
+    .btn-secondary {
+      padding: 12px 18px; background: none; border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text2); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+
+    /* Tam ekran uyarı overlay */
+    #alertOverlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      animation: fadeUp 0.3s ease;
+    }
+    #alertOverlay.visible { display: flex; }
+    .alert-modal {
+      max-width: 520px; width: 90%;
+      border-radius: 18px; padding: 40px 36px;
+      text-align: center; position: relative;
+      animation: popIn 0.35s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.88); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .alert-modal.critical { background: #1a0608; border: 2px solid var(--red); box-shadow: 0 0 60px rgba(229,9,20,0.4); }
+    .alert-modal.warning  { background: #1a1100; border: 2px solid var(--orange); box-shadow: 0 0 60px rgba(245,158,11,0.3); }
+    .alert-modal.info     { background: #060e1a; border: 2px solid var(--blue); box-shadow: 0 0 60px rgba(59,130,246,0.3); }
+    .alert-big-icon { font-size: 52px; margin-bottom: 16px; display: block; }
+    .alert-level-tag {
+      font-size: 11px; font-weight: 800; letter-spacing: 3px;
+      display: inline-block; padding: 4px 14px; border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    .alert-modal.critical .alert-level-tag { background: var(--red-dim); color: #f87171; border: 1px solid rgba(229,9,20,0.4); }
+    .alert-modal.warning  .alert-level-tag { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(245,158,11,0.3); }
+    .alert-modal.info     .alert-level-tag { background: var(--blue-dim); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+    .alert-message {
+      font-size: 17px; font-weight: 600; line-height: 1.6;
+      color: var(--text); margin-bottom: 28px;
+    }
+    .alert-close {
+      padding: 12px 32px; border-radius: 10px; border: none;
+      font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.2s;
+    }
+    .alert-modal.critical .alert-close { background: var(--red); color: #fff; }
+    .alert-modal.warning  .alert-close { background: var(--orange); color: #000; }
+    .alert-modal.info     .alert-close { background: var(--blue); color: #fff; }
+    .alert-close:hover { opacity: 0.85; }
+    .alert-esc-hint { font-size: 11px; color: var(--muted); margin-top: 12px; }
+
     /* ─── Responsive ─── */
     @media (max-width: 768px) {
       #sidebar {
@@ -417,6 +546,10 @@
     <button class="nav-item" onclick="navigate('history', this)" id="navHistory">
       <span class="nav-icon">&#x1F4CB;</span> Tarama Geçmişi
       <span class="nav-badge" id="historyBadge" style="display:none">0</span>
+    </button>
+
+    <button class="nav-item" onclick="navigate('alertbuilder', this)">
+      <span class="nav-icon">&#x1F514;</span> Uyarı Yöneticisi
     </button>
 
     <div class="nav-section-label">Diğer</div>
@@ -615,16 +748,96 @@
       </div>
     </section>
 
+    <!-- ══════════════ ALERT BUILDER ══════════════ -->
+    <section id="page-alertbuilder" class="page">
+      <div class="page-header">
+        <h1>Uyarı Yöneticisi</h1>
+        <p>Hazır şablonlardan seçin ya da özel mesaj yazın. Seviyeyi belirleyip tam ekran önizleyin.</p>
+      </div>
+
+      <div class="warn-builder">
+
+        <!-- Sol: Yapılandırma -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <!-- Seviye seçici -->
+          <div class="builder-card">
+            <h3>Uyarı Seviyesi</h3>
+            <div class="level-picker">
+              <button class="level-btn sel-critical" id="lvlCritical" onclick="selectLevel('critical')">⛔ KRİTİK</button>
+              <button class="level-btn" id="lvlWarning"  onclick="selectLevel('warning')">⚠️ UYARI</button>
+              <button class="level-btn" id="lvlInfo"     onclick="selectLevel('info')">ℹ️ BİLGİ</button>
+            </div>
+          </div>
+
+          <!-- Hazır şablonlar -->
+          <div class="builder-card">
+            <h3>Hazır Şablonlar</h3>
+            <div class="template-list" id="templateList"></div>
+          </div>
+
+          <!-- Özel mesaj -->
+          <div class="builder-card">
+            <h3>Özel Mesaj</h3>
+            <textarea
+              id="customMsg"
+              class="msg-textarea"
+              placeholder="Buraya kendi uyarı mesajınızı yazın..."
+              oninput="onMsgInput()"
+              maxlength="300"
+            ></textarea>
+            <div class="char-count"><span id="charCount">0</span> / 300</div>
+          </div>
+        </div>
+
+        <!-- Sağ: Önizleme + Gönder -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="builder-card">
+            <h3>Canlı Önizleme</h3>
+            <div id="warnPreview" class="preview-box empty">
+              <span class="preview-empty-text">Mesaj girin veya şablon seçin</span>
+            </div>
+          </div>
+
+          <div class="builder-card">
+            <h3>Eylemler</h3>
+            <div class="btn-row">
+              <button class="btn-show" id="btnShowAlert" onclick="showAlertOverlay()" disabled>
+                Tam Ekran Göster
+              </button>
+              <button class="btn-secondary" onclick="resetBuilder()">Sıfırla</button>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5">
+              Tam ekran uyarı açıldığında <kbd style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px">ESC</kbd> veya kapat butonuyla kapatılır.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
   </div><!-- /content -->
 </div><!-- /main -->
+
+<!-- ══════════════ TAM EKRAN UYARI OVERLAY ══════════════ -->
+<div id="alertOverlay" onclick="handleOverlayClick(event)">
+  <div id="alertModal" class="alert-modal critical">
+    <span class="alert-big-icon" id="alertIcon">⛔</span>
+    <span class="alert-level-tag" id="alertLevelTag">KRİTİK</span>
+    <p class="alert-message" id="alertMessage"></p>
+    <button class="alert-close" onclick="closeAlertOverlay()">Kapat</button>
+    <p class="alert-esc-hint">ESC tuşuna basarak da kapatabilirsiniz</p>
+  </div>
+</div>
 
 <script>
 /* ── Navigation ── */
 const PAGE_TITLES = {
-  dashboard: "Dashboard",
-  scanner:   "IP Tarayıcı",
-  history:   "Tarama Geçmişi",
-  about:     "Hakkında",
+  dashboard:    "Dashboard",
+  scanner:      "IP Tarayıcı",
+  history:      "Tarama Geçmişi",
+  alertbuilder: "Uyarı Yöneticisi",
+  about:        "Hakkında",
 };
 
 function navigate(pageId, btn) {
@@ -634,8 +847,9 @@ function navigate(pageId, btn) {
   if (btn) btn.classList.add("active");
   document.getElementById("breadcrumbPage").textContent = PAGE_TITLES[pageId] || pageId;
   closeSidebar();
-  if (pageId === "history") renderHistory();
-  if (pageId === "dashboard") updateDashStats();
+  if (pageId === "history")      renderHistory();
+  if (pageId === "dashboard")    updateDashStats();
+  if (pageId === "alertbuilder") initBuilder();
 }
 
 function toggleSidebar() {
@@ -806,6 +1020,143 @@ const LEVEL_META = {
   warning:  { icon: "⚠️",  label: "UYARI"   },
   info:     { icon: "ℹ️",  label: "BİLGİ"   },
 };
+
+/* ══════════════ ALERT BUILDER ══════════════ */
+
+const TEMPLATES = {
+  critical: [
+    "Bu sistemde kritik güvenlik açığı tespit edildi. Bağlantınızı hemen kesin.",
+    "Yetkisiz erişim girişimi algılandı. Sistem yöneticisini derhal bilgilendirin.",
+    "Veritabanı açık port üzerinden erişilebilir durumda. Acil müdahale gerekiyor.",
+    "Şifrelenmemiş protokol (Telnet/FTP) aktif. Tüm kimlik bilgileri tehlikede.",
+    "Güvenlik duvarı kuralları ihlal edildi. Tüm trafiği durdurun.",
+  ],
+  warning: [
+    "SSH portu açık — anahtar tabanlı doğrulama yapılandırıldığından emin olun.",
+    "Alternatif web portu (8080) dışarıya açık. Erişimi kısıtlamayı değerlendirin.",
+    "SMTP open relay testi başarısız. Spam relay açığı olabilir.",
+    "HTTP üzerinden hassas veri iletimi tespit edildi. HTTPS kullanımı zorunlu.",
+    "Yazılım sürümleri güncel değil. Güvenlik yamaları uygulanmalı.",
+  ],
+  info: [
+    "Tarama tamamlandı. Taranan portlarda kritik açık bulunamadı.",
+    "HTTPS aktif, ancak SSL sertifika son kullanma tarihi kontrol edilmeli.",
+    "DNS portu açık — zone transfer politikasını gözden geçirin.",
+    "Sistem güncel görünüyor. Periyodik tarama önerilir.",
+    "Güvenlik duvarı aktif ve portlar kapalı. İyi yapılandırılmış.",
+  ],
+};
+
+const LEVEL_ICONS  = { critical: "⛔", warning: "⚠️", info: "ℹ️" };
+const LEVEL_LABELS = { critical: "KRİTİK", warning: "UYARI", info: "BİLGİ" };
+
+let currentLevel   = "critical";
+let currentMessage = "";
+let builderReady   = false;
+
+function initBuilder() {
+  if (builderReady) return;
+  builderReady = true;
+  renderTemplates();
+}
+
+function selectLevel(level) {
+  currentLevel = level;
+  ["critical","warning","info"].forEach(l => {
+    const btn = document.getElementById("lvl" + l.charAt(0).toUpperCase() + l.slice(1));
+    btn.className = "level-btn" + (l === level ? " sel-" + l : "");
+  });
+  renderTemplates();
+  updatePreview();
+}
+
+function renderTemplates() {
+  const list = document.getElementById("templateList");
+  list.innerHTML = TEMPLATES[currentLevel].map((t, i) =>
+    `<div class="tpl-item" id="tpl-${i}" onclick="selectTemplate(${i})">${t}</div>`
+  ).join("");
+}
+
+function selectTemplate(idx) {
+  const text = TEMPLATES[currentLevel][idx];
+  document.getElementById("customMsg").value = text;
+  currentMessage = text;
+  document.getElementById("charCount").textContent = text.length;
+  document.querySelectorAll(".tpl-item").forEach((el, i) =>
+    el.classList.toggle("selected", i === idx)
+  );
+  updatePreview();
+}
+
+function onMsgInput() {
+  const val = document.getElementById("customMsg").value;
+  currentMessage = val;
+  document.getElementById("charCount").textContent = val.length;
+  document.querySelectorAll(".tpl-item").forEach(el => el.classList.remove("selected"));
+  updatePreview();
+}
+
+function updatePreview() {
+  const box = document.getElementById("warnPreview");
+  const btn = document.getElementById("btnShowAlert");
+
+  if (!currentMessage.trim()) {
+    box.className = "preview-box empty";
+    box.innerHTML = `<span class="preview-empty-text">Mesaj girin veya şablon seçin</span>`;
+    btn.disabled = true;
+    return;
+  }
+
+  const ico   = LEVEL_ICONS[currentLevel];
+  const label = LEVEL_LABELS[currentLevel];
+  box.className = "preview-box " + currentLevel;
+  box.innerHTML = `
+    <span class="preview-ico">${ico}</span>
+    <div>
+      <span class="preview-level">${label}</span>
+      <p class="preview-msg">${escHtml(currentMessage)}</p>
+    </div>
+  `;
+  btn.disabled = false;
+}
+
+function resetBuilder() {
+  currentMessage = "";
+  document.getElementById("customMsg").value = "";
+  document.getElementById("charCount").textContent = "0";
+  document.querySelectorAll(".tpl-item").forEach(el => el.classList.remove("selected"));
+  updatePreview();
+}
+
+function showAlertOverlay() {
+  if (!currentMessage.trim()) return;
+  const modal = document.getElementById("alertModal");
+  modal.className = "alert-modal " + currentLevel;
+  document.getElementById("alertIcon").textContent     = LEVEL_ICONS[currentLevel];
+  document.getElementById("alertLevelTag").textContent = LEVEL_LABELS[currentLevel];
+  document.getElementById("alertMessage").textContent  = currentMessage;
+  document.getElementById("alertOverlay").classList.add("visible");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAlertOverlay() {
+  document.getElementById("alertOverlay").classList.remove("visible");
+  document.body.style.overflow = "";
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById("alertOverlay")) closeAlertOverlay();
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeAlertOverlay();
+});
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ════════════════════════════════════════ */
 
 function renderScanResult(data) {
   const critCount = data.warnings.filter(w => w.level === "critical").length;
