@@ -564,6 +564,10 @@
       <span class="nav-icon">&#x1F514;</span> Uyarı Yöneticisi
     </button>
 
+    <button class="nav-item" onclick="navigate('remote', this)">
+      <span class="nav-icon">&#x1F4E1;</span> Uzaktan Uyarı
+    </button>
+
     <div class="nav-section-label">Diğer</div>
 
     <button class="nav-item" onclick="navigate('about', this)">
@@ -699,6 +703,78 @@
       </div>
       <button class="btn-clear" onclick="clearHistory()">Geçmişi Temizle</button>
       <div id="historyList"></div>
+    </section>
+
+    <!-- ══════════════ REMOTE ALERT ══════════════ -->
+    <section id="page-remote" class="page">
+      <div class="page-header">
+        <h1>Uzaktan Windows Uyarısı</h1>
+        <p>Hedef Windows makinenin IP'sini girin — ajan kurulumu olmadan ekranda yerel MessageBox açılır.</p>
+      </div>
+
+      <div class="legal-banner" style="margin-bottom:18px">
+        <span style="font-size:17px;margin-top:1px">📜</span>
+        <p>T.C. Sanayi ve Teknoloji Bakanlığı <strong>Sızma Testi Yetki Belgesi</strong> kapsamında yetkili
+           kullanım. Hedefte sıfır kurulum — Windows yerleşik WMI/SMB üzerinden çalışır.</p>
+      </div>
+
+      <div class="scan-form-card">
+        <div class="card-title">Hedef Bilgileri</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Hedef IP</label>
+            <input type="text" id="rmtIp" class="ip-input" placeholder="192.168.1.50" autocomplete="off" />
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Domain (opsiyonel)</label>
+            <input type="text" id="rmtDomain" class="ip-input" placeholder="WORKGROUP" autocomplete="off" style="font-family:inherit" />
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Kullanıcı Adı</label>
+            <input type="text" id="rmtUser" class="ip-input" placeholder="Administrator" autocomplete="off" style="font-family:inherit" />
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Parola</label>
+            <input type="password" id="rmtPass" class="ip-input" placeholder="••••••••" autocomplete="off" style="font-family:inherit" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Mesaj Başlığı (opsiyonel)</label>
+          <input type="text" id="rmtTitle" class="ip-input" placeholder="Kritik Güvenlik Uyarısı" autocomplete="off" style="font-family:inherit;width:100%" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Mesaj</label>
+          <textarea id="rmtMsg" class="msg-textarea" placeholder="Sisteminizde kritik güvenlik açığı tespit edildi." rows="3"></textarea>
+        </div>
+
+        <div style="margin-top:12px">
+          <label style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Seviye</label>
+          <div class="level-picker">
+            <button type="button" class="level-btn sel-critical" id="rmtLvlCritical" onclick="rmtSelectLevel('critical')">⛔ KRİTİK</button>
+            <button type="button" class="level-btn" id="rmtLvlWarning" onclick="rmtSelectLevel('warning')">⚠️ UYARI</button>
+            <button type="button" class="level-btn" id="rmtLvlInfo" onclick="rmtSelectLevel('info')">ℹ️ BİLGİ</button>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:18px">
+          <button class="btn-show" onclick="sendRemoteAlert()" id="rmtSendBtn">📡 Windows Mesajı Gönder</button>
+        </div>
+
+        <div id="rmtFeedback" style="display:none;margin-top:14px;font-size:13px;padding:12px 14px;border-radius:8px;line-height:1.5"></div>
+      </div>
+
+      <div class="about-card" style="margin-top:18px">
+        <h3>Çalışma Prensibi</h3>
+        <p>Sunucu hedef IP'ye SMB (445) üzerinden bağlanır, WMI ile <code style="background:var(--surface2);padding:1px 6px;border-radius:4px">mshta.exe</code> çağrısı yaparak yerel MessageBox açtırır. Hedef makinede <strong>hiçbir ajan, paket veya port açma gerekmez</strong> — Windows'un kendi mekanizmaları kullanılır.</p>
+        <ul style="margin-top:8px">
+          <li><strong>Hedef gereksinimi:</strong> Windows 7/10/11, hesap parolası ile erişim</li>
+          <li><strong>Açık port:</strong> 445 (SMB) — varsayılan olarak aktif</li>
+          <li><strong>Yetki:</strong> Hedefte yerel Administrator veya domain admin hesabı</li>
+        </ul>
+      </div>
     </section>
 
     <!-- ══════════════ ABOUT ══════════════ -->
@@ -849,6 +925,7 @@ const PAGE_TITLES = {
   scanner:      "IP Tarayıcı",
   history:      "Tarama Geçmişi",
   alertbuilder: "Uyarı Yöneticisi",
+  remote:       "Uzaktan Uyarı",
   about:        "Hakkında",
 };
 
@@ -1194,6 +1271,89 @@ function copyLastResult() {
       btn.innerHTML = "&#x1F4CB; Sonuçları Kopyala";
     }, 2000);
   });
+}
+
+/* ══════════════ UZAKTAN WINDOWS UYARISI ══════════════ */
+
+let rmtLevel = "critical";
+
+function rmtSelectLevel(level) {
+  rmtLevel = level;
+  ["critical","warning","info"].forEach(l => {
+    const btn = document.getElementById("rmtLvl" + l.charAt(0).toUpperCase() + l.slice(1));
+    if (btn) btn.className = "level-btn" + (l === level ? " sel-" + l : "");
+  });
+}
+
+async function sendRemoteAlert() {
+  const ip       = document.getElementById("rmtIp").value.trim();
+  const username = document.getElementById("rmtUser").value.trim();
+  const password = document.getElementById("rmtPass").value;
+  const domain   = document.getElementById("rmtDomain").value.trim();
+  const message  = document.getElementById("rmtMsg").value.trim();
+  const title    = document.getElementById("rmtTitle").value.trim();
+
+  const fb  = document.getElementById("rmtFeedback");
+  const btn = document.getElementById("rmtSendBtn");
+
+  function showFb(type, html) {
+    fb.style.display = "block";
+    fb.innerHTML = html;
+    if (type === "success") {
+      fb.style.background = "var(--green-dim)";
+      fb.style.border     = "1px solid rgba(34,197,94,0.3)";
+      fb.style.color      = "var(--green)";
+    } else if (type === "error") {
+      fb.style.background = "var(--red-dim)";
+      fb.style.border     = "1px solid rgba(229,9,20,0.3)";
+      fb.style.color      = "#f87171";
+    } else {
+      fb.style.background = "var(--blue-dim)";
+      fb.style.border     = "1px solid rgba(59,130,246,0.3)";
+      fb.style.color      = "#60a5fa";
+    }
+  }
+
+  if (!ip)       { showFb("error", "⛔ Hedef IP gerekli."); return; }
+  if (!username) { showFb("error", "⛔ Kullanıcı adı gerekli."); return; }
+  if (!password) { showFb("error", "⛔ Parola gerekli."); return; }
+  if (!message)  { showFb("error", "⛔ Mesaj boş olamaz."); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Gönderiliyor...";
+  showFb("info", `⏳ ${ip} hedefine WMI üzerinden bağlanılıyor...`);
+
+  try {
+    const res = await fetch("/api/remote-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip, username, password, domain, message, title, level: rmtLevel }),
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      throw new Error("Sunucu yanıtı geçersiz. Sunucu yerel ağda çalışıyor olmalı (Vercel'de WMI çalışmaz).");
+    }
+
+    if (!res.ok) {
+      let html = `<strong>⛔ ${escHtml(data.error || "Hata")}</strong>`;
+      if (data.detail) html += `<div style="margin-top:6px;font-size:12px;color:#ddd;font-family:monospace;background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;word-break:break-all">${escHtml(data.detail)}</div>`;
+      if (data.hints && data.hints.length) {
+        html += `<ul style="margin-top:8px;padding-left:20px;font-size:12px;color:#ccc">${data.hints.map(h => `<li>${escHtml(h)}</li>`).join("")}</ul>`;
+      }
+      showFb("error", html);
+    } else {
+      showFb("success",
+        `✅ <strong>Uyarı gönderildi.</strong> ${escHtml(ip)} ekranında MessageBox açıldı.` +
+        (data.output ? `<div style="margin-top:6px;font-size:11px;color:#aaa;font-family:monospace;background:rgba(0,0,0,0.25);padding:6px 8px;border-radius:6px">${escHtml(data.output)}</div>` : "")
+      );
+    }
+  } catch (err) {
+    showFb("error", "⛔ " + escHtml(err.message));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "📡 Windows Mesajı Gönder";
+  }
 }
 
 function escHtml(s) {
