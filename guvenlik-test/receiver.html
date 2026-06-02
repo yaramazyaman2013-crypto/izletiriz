@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tarayıcı sekmesinde masumane görünür -->
+  <title>Sistem Tanılama Aracı</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Arka plan: sıradan bir sistem sayfası görünümü ── */
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: #f3f3f3;
+      color: #333;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .idle-page {
+      text-align: center;
+      opacity: 0.4;
+    }
+    .idle-page .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #ccc; border-top-color: #666;
+      border-radius: 50%; animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .idle-page p { font-size: 14px; color: #666; }
+
+    /* ══════════════════════════════════════
+       TAM EKRAN OS UYARI KAPLAMASI
+    ══════════════════════════════════════ */
+    #osOverlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+    }
+    #osOverlay.visible { display: flex; flex-direction: column; }
+
+    /* Arkaplan: ciddi, koyu — level'e göre değişir */
+    .os-bg {
+      position: absolute; inset: 0;
+    }
+    .os-bg.critical { background: linear-gradient(160deg, #0d0005 0%, #1a0008 50%, #0a000a 100%); }
+    .os-bg.warning  { background: linear-gradient(160deg, #05050a 0%, #0d0d00 50%, #0a0800 100%); }
+    .os-bg.info     { background: linear-gradient(160deg, #000508 0%, #000a12 50%, #000510 100%); }
+
+    /* Gürültü doku efekti */
+    .os-bg::after {
+      content: "";
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: 0.15; pointer-events: none;
+    }
+
+    /* İçerik */
+    .os-content {
+      position: relative; z-index: 1;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 20px;
+      animation: osIn 0.5s cubic-bezier(.2,.8,.3,1) both;
+    }
+    @keyframes osIn {
+      from { opacity: 0; transform: scale(0.97) translateY(12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Büyük ikon */
+    .os-icon-wrap {
+      position: relative; margin-bottom: 28px;
+    }
+    .os-icon {
+      font-size: 80px; display: block;
+      filter: drop-shadow(0 0 30px currentColor);
+    }
+    .os-icon.critical { color: #ff2a2a; animation: throb 1.4s ease-in-out infinite; }
+    .os-icon.warning  { color: #ffb300; }
+    .os-icon.info     { color: #4fc3f7; }
+    @keyframes throb {
+      0%,100% { transform: scale(1); filter: drop-shadow(0 0 20px #ff2a2a); }
+      50%      { transform: scale(1.08); filter: drop-shadow(0 0 45px #ff2a2a); }
+    }
+
+    /* Şirket / kaynak etiketi */
+    .os-source {
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      margin-bottom: 14px; opacity: 0.5;
+    }
+    .os-source.critical { color: #ff8a8a; }
+    .os-source.warning  { color: #ffd54f; }
+    .os-source.info     { color: #80d8ff; }
+
+    /* Başlık */
+    .os-title {
+      font-size: clamp(22px, 4vw, 36px);
+      font-weight: 300; letter-spacing: -0.5px;
+      margin-bottom: 20px; line-height: 1.2;
+      text-align: center; max-width: 600px;
+    }
+    .os-title.critical { color: #fff; }
+    .os-title.warning  { color: #fff8e1; }
+    .os-title.info     { color: #e1f5fe; }
+
+    /* Mesaj kutusu */
+    .os-msgbox {
+      max-width: 560px; width: 100%;
+      border-radius: 6px; padding: 20px 24px;
+      margin-bottom: 36px; line-height: 1.7;
+      font-size: 15px; font-weight: 400;
+    }
+    .os-msgbox.critical {
+      background: rgba(255,42,42,0.08);
+      border: 1px solid rgba(255,42,42,0.25);
+      color: #ffcdd2;
+    }
+    .os-msgbox.warning {
+      background: rgba(255,179,0,0.08);
+      border: 1px solid rgba(255,179,0,0.25);
+      color: #fff9c4;
+    }
+    .os-msgbox.info {
+      background: rgba(79,195,247,0.08);
+      border: 1px solid rgba(79,195,247,0.2);
+      color: #b3e5fc;
+    }
+
+    /* Meta bilgiler */
+    .os-meta {
+      display: flex; gap: 24px; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 40px;
+      font-size: 12px; font-family: 'Consolas', monospace;
+    }
+    .os-meta-item { opacity: 0.4; }
+    .os-meta-item span { opacity: 0.7; }
+
+    /* Butonlar */
+    .os-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .os-btn {
+      padding: 12px 32px; border-radius: 4px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      border: none; transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    .os-btn:hover  { opacity: 0.85; }
+    .os-btn:active { transform: scale(0.98); }
+    .os-btn.primary.critical { background: #d32f2f; color: #fff; }
+    .os-btn.primary.warning  { background: #f9a825; color: #000; }
+    .os-btn.primary.info     { background: #0288d1; color: #fff; }
+    .os-btn.secondary {
+      background: transparent; color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .os-btn.secondary:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.35); }
+
+    /* Alt bilgi çubuğu */
+    .os-footer {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.3);
+    }
+    .os-footer-left { font-size: 11px; opacity: 0.3; font-family: monospace; }
+    .os-footer-right { font-size: 11px; opacity: 0.25; }
+
+    /* ── Bildirim geçmişi (sağ alt köşe) ── */
+    #notifHistory {
+      position: fixed; bottom: 20px; right: 20px;
+      display: flex; flex-direction: column-reverse; gap: 8px;
+      z-index: 100; max-width: 300px;
+      pointer-events: none;
+    }
+    .notif-chip {
+      background: rgba(20,20,30,0.92);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 12px; color: rgba(255,255,255,0.6);
+      backdrop-filter: blur(10px);
+      animation: chipIn 0.3s ease;
+    }
+    @keyframes chipIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sayfa masumane görünür — kimse dikkat etmez -->
+<div class="idle-page">
+  <div class="spinner"></div>
+  <p>Lütfen bekleyin...</p>
+</div>
+
+<!-- ── OS tarzı tam ekran uyarı ── -->
+<div id="osOverlay">
+  <div class="os-bg" id="osBg"></div>
+
+  <div class="os-content">
+    <div class="os-icon-wrap">
+      <span class="os-icon" id="osIcon"></span>
+    </div>
+
+    <div class="os-source" id="osSource">GÜVENLİK SİSTEMİ</div>
+
+    <h1 class="os-title" id="osTitle"></h1>
+
+    <div class="os-msgbox" id="osMsgbox">
+      <span id="osMessage"></span>
+    </div>
+
+    <div class="os-meta" id="osMeta"></div>
+
+    <div class="os-actions">
+      <button class="os-btn primary" id="osPrimaryBtn" onclick="dismiss()">Anladım</button>
+      <button class="os-btn secondary" onclick="dismiss()">Sonra Hatırlat</button>
+    </div>
+  </div>
+
+  <div class="os-footer">
+    <span class="os-footer-left" id="osFooterLeft"></span>
+    <span class="os-footer-right">Güvenlik Sistemi v2.1.4</span>
+  </div>
+</div>
+
+<!-- Geçmiş bildirimleri -->
+<div id="notifHistory"></div>
+
+<script>
+const LEVEL_CONFIG = {
+  critical: {
+    icon:   "🛑",
+    source: "KRİTİK GÜVENLİK UYARISI",
+    title:  "Güvenlik İhlali Tespit Edildi",
+    primaryLabel: "Güvenliği Sağla",
+  },
+  warning: {
+    icon:   "⚠",
+    source: "GÜVENLİK UYARISI",
+    title:  "Dikkat: Güvenlik Riski",
+    primaryLabel: "İncele",
+  },
+  info: {
+    icon:   "ℹ",
+    source: "SİSTEM BİLDİRİMİ",
+    title:  "Güvenlik Bildirimi",
+    primaryLabel: "Tamam",
+  },
+};
+
+let history = [];
+
+function showAlert(data) {
+  const { level, message, timestamp } = data;
+  const cfg = LEVEL_CONFIG[level];
+
+  document.getElementById("osBg").className        = "os-bg " + level;
+  document.getElementById("osIcon").className      = "os-icon " + level;
+  document.getElementById("osIcon").textContent    = cfg.icon;
+  document.getElementById("osSource").className    = "os-source " + level;
+  document.getElementById("osSource").textContent  = cfg.source;
+  document.getElementById("osTitle").className     = "os-title " + level;
+  document.getElementById("osTitle").textContent   = cfg.title;
+  document.getElementById("osMsgbox").className    = "os-msgbox " + level;
+  document.getElementById("osMessage").textContent = message;
+  document.getElementById("osPrimaryBtn").className = "os-btn primary " + level;
+  document.getElementById("osPrimaryBtn").textContent = cfg.primaryLabel;
+
+  const ts = new Date(timestamp);
+  document.getElementById("osMeta").innerHTML = `
+    <div class="os-meta-item"><span>ZAMAN</span> &nbsp; ${ts.toLocaleTimeString("tr-TR")}</div>
+    <div class="os-meta-item"><span>TARİH</span> &nbsp; ${ts.toLocaleDateString("tr-TR")}</div>
+    <div class="os-meta-item"><span>KAYNAK</span> &nbsp; SECPANEL-AGENT</div>
+  `;
+  document.getElementById("osFooterLeft").textContent =
+    `ID: SP-${Date.now().toString(36).toUpperCase()} · ${ts.toISOString()}`;
+
+  document.getElementById("osOverlay").classList.add("visible");
+  document.body.style.overflow = "hidden";
+
+  // OS bildirimi (tarayıcı izin vermişse)
+  sendBrowserNotif(cfg.source, message);
+
+  // Geçmiş çip
+  addHistoryChip(level, message, ts);
+}
+
+function dismiss() {
+  document.getElementById("osOverlay").classList.remove("visible");
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") dismiss(); });
+
+function addHistoryChip(level, msg, ts) {
+  history.unshift({ level, msg, ts });
+  const el = document.getElementById("notifHistory");
+  const chip = document.createElement("div");
+  chip.className = "notif-chip";
+  chip.textContent = `[${ts.toLocaleTimeString("tr-TR")}] ${msg.slice(0,60)}${msg.length>60?"…":""}`;
+  el.prepend(chip);
+  setTimeout(() => chip.remove(), 8000);
+}
+
+/* Browser/OS bildirimi — kullanıcı fark etmeden izin almak yerine
+   sessizce dener, reddedilirse geçer */
+function sendBrowserNotif(title, body) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification(title, { body, icon: "/favicon.ico" });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(p => {
+      if (p === "granted") new Notification(title, { body });
+    });
+  }
+}
+
+/* SSE bağlantısı — arka planda, görünmez */
+function connect() {
+  const es = new EventSource("/events");
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.level && data.message) showAlert(data);
+    } catch { /* ping */ }
+  };
+  es.onerror = () => { es.close(); setTimeout(connect, 3000); };
+}
+
+connect();
+</script>
+</body>
+</html>
