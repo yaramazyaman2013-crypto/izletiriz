@@ -1038,7 +1038,11 @@ async function startScan(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ip }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      throw new Error("Sunucu yanıt vermedi. Vercel'de TCP tarama kısıtlı — sunucuyu yerel ağda çalıştırın.");
+    }
     if (!res.ok) throw new Error(data.error || "Sunucu hatası.");
     saveToHistory(data);
     renderScanResult(data);
