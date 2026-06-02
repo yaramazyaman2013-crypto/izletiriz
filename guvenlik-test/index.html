@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecPanel — Güvenlik Test Paneli</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131c;
+      --surface2: #1a1a27;
+      --border: #252535;
+      --red: #e50914;
+      --red-dim: rgba(229,9,20,0.12);
+      --red-glow: rgba(229,9,20,0.25);
+      --orange: #f59e0b;
+      --orange-dim: rgba(245,158,11,0.10);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.10);
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.10);
+      --text: #f1f1f1;
+      --text2: #a0a0b8;
+      --muted: #606078;
+      --sidebar-w: 240px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+    }
+
+    /* ─── Sidebar ─── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-logo {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--red); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .logo-text { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+    .logo-sub  { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+
+    .nav-section-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 12px 8px 6px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; border: none; background: none;
+      color: var(--text2); font-size: 14px; font-weight: 500;
+      width: 100%; text-align: left;
+      transition: background 0.15s, color 0.15s;
+      position: relative;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active {
+      background: var(--red-dim);
+      color: var(--text);
+      border: 1px solid rgba(229,9,20,0.2);
+    }
+    .nav-item.active::before {
+      content: "";
+      position: absolute; left: 0; top: 20%; bottom: 20%;
+      width: 3px; background: var(--red); border-radius: 0 3px 3px 0;
+    }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--red);
+      color: #fff; font-size: 10px; font-weight: 800;
+      padding: 1px 6px; border-radius: 99px; min-width: 18px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      display: inline-block; margin-right: 6px;
+      box-shadow: 0 0 6px var(--green);
+    }
+    .sidebar-footer span { font-size: 12px; color: var(--muted); }
+
+    /* Mobile overlay */
+    #sidebarOverlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 99;
+    }
+
+    /* ─── Main area ─── */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Top bar */
+    #topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    #menuToggle {
+      display: none; background: none; border: none;
+      color: var(--text); font-size: 20px; cursor: pointer;
+    }
+    .breadcrumb { font-size: 14px; color: var(--text2); }
+    .breadcrumb span { color: var(--text); font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-time { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .topbar-version {
+      font-size: 11px; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 99px;
+    }
+
+    /* Content */
+    #content { padding: 28px; flex: 1; max-width: 900px; }
+
+    /* ─── Pages ─── */
+    .page { display: none; animation: fadeUp 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Page Header ─── */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .page-header p  { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+    /* ─── Cards ─── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px;
+    }
+
+    /* ─── Dashboard ─── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 18px;
+    }
+    .stat-card .icon { font-size: 22px; margin-bottom: 10px; }
+    .stat-card .num  { font-size: 28px; font-weight: 800; line-height: 1; }
+    .stat-card .lbl  { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+    .quick-actions { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 14px; margin-bottom: 24px; }
+    .action-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      cursor: pointer; text-align: left;
+      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .action-btn:hover { border-color: var(--red); background: var(--red-dim); }
+    .action-btn .a-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .action-btn .a-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .action-btn .a-desc  { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+    /* ─── Scanner ─── */
+    .legal-banner {
+      background: var(--orange-dim); border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 22px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .legal-banner p { color: var(--orange); font-size: 13px; line-height: 1.5; }
+
+    .scan-form-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; margin-bottom: 24px;
+    }
+    .input-group { display: flex; gap: 10px; }
+    .ip-input {
+      flex: 1; padding: 13px 16px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 15px; font-family: monospace; outline: none;
+      transition: border-color 0.2s;
+    }
+    .ip-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow); }
+    .ip-input:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary {
+      padding: 13px 28px; background: var(--red); border: none;
+      border-radius: 10px; color: #fff; font-weight: 700;
+      font-size: 14px; cursor: pointer; letter-spacing: 0.3px;
+      transition: opacity 0.2s, background 0.2s; white-space: nowrap;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+    .btn-primary:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .error-msg { color: #f87171; font-size: 13px; margin-top: 8px; display: none; }
+
+    .loading-box { text-align: center; padding: 48px 0; display: none; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border); border-top-color: var(--red);
+      border-radius: 50%; animation: spin 0.9s linear infinite;
+      margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-box p { color: var(--text2); font-size: 14px; }
+
+    /* Results */
+    .results-wrap { display: none; animation: fadeUp 0.35s ease; }
+    .summary-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 18px; }
+    .sum-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 12px; text-align: center;
+    }
+    .sum-card .s-num { font-size: 26px; font-weight: 800; }
+    .sum-card .s-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .meta-bar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
+      display: flex; flex-wrap: wrap; gap: 20px;
+    }
+    .meta-item .m-lbl { font-size: 11px; color: var(--muted); }
+    .meta-item .m-val { font-weight: 700; font-size: 14px; margin-top: 2px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
+    }
+    .port-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .port-tag {
+      background: rgba(229,9,20,0.14); border: 1px solid rgba(229,9,20,0.35);
+      border-radius: 6px; padding: 5px 12px; color: #f87171;
+      font-family: monospace; font-size: 13px; font-weight: 600;
+    }
+    .port-tag em { color: var(--muted); font-style: normal; font-weight: 400; }
+
+    .warn-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px; }
+    .warn-item {
+      border-radius: 10px; padding: 13px 15px;
+      display: flex; gap: 11px; align-items: flex-start;
+    }
+    .warn-item.critical { background: var(--red-dim); border: 1px solid rgba(229,9,20,0.35); }
+    .warn-item.warning  { background: var(--orange-dim); border: 1px solid rgba(245,158,11,0.3); }
+    .warn-item.info     { background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.3); }
+    .warn-ico { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+    .warn-level-tag {
+      font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+      display: block; margin-bottom: 3px;
+    }
+    .warn-item.critical .warn-level-tag { color: #f87171; }
+    .warn-item.warning  .warn-level-tag { color: var(--orange); }
+    .warn-item.info     .warn-level-tag { color: #60a5fa; }
+    .warn-text { color: #ddd; font-size: 13px; line-height: 1.5; }
+
+    .verdict {
+      border-radius: 10px; padding: 14px 18px; text-align: center;
+    }
+    .verdict.bad  { background: var(--red-dim); border: 1px solid rgba(229,9,20,0.35); }
+    .verdict.good { background: var(--green-dim); border: 1px solid rgba(34,197,94,0.3); }
+    .verdict .v-main { font-weight: 700; font-size: 15px; }
+    .verdict.bad  .v-main { color: #f87171; }
+    .verdict.good .v-main { color: var(--green); }
+    .verdict .v-sub { color: var(--muted); font-size: 12px; margin-top: 5px; line-height: 1.5; }
+
+    /* ─── History ─── */
+    .history-empty {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted);
+    }
+    .history-empty .big { font-size: 40px; margin-bottom: 12px; }
+    .history-empty p { font-size: 14px; }
+
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-row {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 18px;
+      display: flex; align-items: center; gap: 16px;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .history-row:hover { border-color: rgba(229,9,20,0.3); }
+    .h-ip { font-family: monospace; font-weight: 700; font-size: 15px; flex: 1; }
+    .h-status {
+      font-size: 11px; font-weight: 800; letter-spacing: 1px;
+      padding: 3px 10px; border-radius: 99px;
+    }
+    .h-status.bad  { background: var(--red-dim); color: #f87171; border: 1px solid rgba(229,9,20,0.3); }
+    .h-status.good { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .h-meta { font-size: 12px; color: var(--muted); }
+    .h-open-ports { font-size: 12px; color: var(--text2); font-family: monospace; }
+
+    .btn-clear {
+      background: none; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text2); font-size: 13px;
+      padding: 7px 16px; cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      margin-bottom: 16px;
+    }
+    .btn-clear:hover { border-color: #f87171; color: #f87171; }
+
+    /* ─── About ─── */
+    .about-grid { display: flex; flex-direction: column; gap: 14px; }
+    .about-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .about-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .about-card p, .about-card li { font-size: 13px; color: var(--text2); line-height: 1.7; }
+    .about-card ul { padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+    .port-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .port-table th {
+      text-align: left; font-size: 11px; font-weight: 700;
+      color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase;
+      padding: 6px 12px; border-bottom: 1px solid var(--border);
+    }
+    .port-table td { padding: 8px 12px; color: var(--text2); border-bottom: 1px solid var(--border); }
+    .port-table tr:last-child td { border-bottom: none; }
+    .port-table td:first-child { font-family: monospace; color: var(--text); }
+    .severity {
+      font-size: 10px; font-weight: 800; letter-spacing: 1px;
+      padding: 2px 8px; border-radius: 99px;
+    }
+    .severity.critical { background: var(--red-dim); color: #f87171; }
+    .severity.warning  { background: var(--orange-dim); color: var(--orange); }
+    .severity.info     { background: var(--blue-dim); color: #60a5fa; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      #sidebar {
+        transform: translateX(-100%);
+      }
+      #sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+      }
+      #sidebarOverlay.open { display: block; }
+      #menuToggle { display: block; }
+      #main { margin-left: 0; }
+      #content { padding: 18px; }
+      .summary-row { grid-template-columns: repeat(3,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar overlay (mobile) -->
+<div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ─── Sidebar ─── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">&#x1F6E1;</div>
+    <div>
+      <div class="logo-text">SecPanel</div>
+      <div class="logo-sub">GÜVENLİK ARAÇLARI</div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Genel</div>
+
+    <button class="nav-item active" onclick="navigate('dashboard', this)">
+      <span class="nav-icon">&#x1F4CA;</span> Dashboard
+    </button>
+
+    <div class="nav-section-label">Araçlar</div>
+
+    <button class="nav-item" onclick="navigate('scanner', this)">
+      <span class="nav-icon">&#x1F50D;</span> IP Tarayıcı
+    </button>
+
+    <button class="nav-item" onclick="navigate('history', this)" id="navHistory">
+      <span class="nav-icon">&#x1F4CB;</span> Tarama Geçmişi
+      <span class="nav-badge" id="historyBadge" style="display:none">0</span>
+    </button>
+
+    <div class="nav-section-label">Diğer</div>
+
+    <button class="nav-item" onclick="navigate('about', this)">
+      <span class="nav-icon">&#x2139;&#xFE0F;</span> Hakkında
+    </button>
+  </div>
+
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>
+    <span>Sunucu aktif &mdash; port 3030</span>
+  </div>
+</nav>
+
+<!-- ─── Main ─── -->
+<div id="main">
+
+  <!-- Topbar -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <button id="menuToggle" onclick="toggleSidebar()">&#9776;</button>
+      <div class="breadcrumb">SecPanel &rsaquo; <span id="breadcrumbPage">Dashboard</span></div>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-time" id="clock"></span>
+      <span class="topbar-version">v1.0</span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div id="content">
+
+    <!-- ══════════════ DASHBOARD ══════════════ -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p>Güvenlik test panelinize hoş geldiniz. Soldaki menüden araçlara erişin.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="icon">&#x1F4E1;</div>
+          <div class="num" id="stat-total">0</div>
+          <div class="lbl">Toplam Tarama</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">&#x26A0;&#xFE0F;</div>
+          <div class="num" id="stat-critical" style="color:#f87171">0</div>
+          <div class="lbl">Kritik Açık</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">&#x2705;</div>
+          <div class="num" id="stat-clean" style="color:#22c55e">0</div>
+          <div class="lbl">Temiz Sistem</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">&#x1F513;</div>
+          <div class="num" id="stat-ports" style="color:#f59e0b">0</div>
+          <div class="lbl">Açık Port</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">Hızlı Erişim</div>
+      <div class="quick-actions">
+        <div class="action-btn" onclick="navigate('scanner', document.querySelector('.nav-item:nth-child(3)'))">
+          <div class="a-icon" style="background:var(--red-dim)">&#x1F50D;</div>
+          <div>
+            <div class="a-title">IP Tarayıcı</div>
+            <div class="a-desc">Test makinenizin IP adresini girerek port ve güvenlik açığı taraması yapın.</div>
+          </div>
+        </div>
+        <div class="action-btn" onclick="navigate('history', document.getElementById('navHistory'))">
+          <div class="a-icon" style="background:var(--blue-dim)">&#x1F4CB;</div>
+          <div>
+            <div class="a-title">Tarama Geçmişi</div>
+            <div class="a-desc">Daha önce yapılan taramaların sonuçlarını görüntüleyin.</div>
+          </div>
+        </div>
+        <div class="action-btn" onclick="navigate('about', document.querySelector('.nav-item:nth-child(5)'))">
+          <div class="a-icon" style="background:var(--green-dim)">&#x1F4D6;</div>
+          <div>
+            <div class="a-title">Hakkında</div>
+            <div class="a-desc">Taranan portlar, uyarı seviyeleri ve kullanım rehberi.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Son tarama -->
+      <div class="card">
+        <div class="card-title">Son Tarama</div>
+        <div id="dash-last-scan" style="color:var(--muted);font-size:13px">Henüz tarama yapılmadı.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SCANNER ══════════════ -->
+    <section id="page-scanner" class="page">
+      <div class="page-header">
+        <h1>IP Tarayıcı</h1>
+        <p>Test makinenizin IP adresini girin. 15 yaygın port paralel olarak taranır.</p>
+      </div>
+
+      <div class="legal-banner">
+        <span style="font-size:17px;margin-top:1px">⚠️</span>
+        <p>Bu araç yalnızca <strong>yetkili güvenlik testleri</strong> içindir.
+           İzinsiz sistemlerde kullanmak <strong>yasal suçtur</strong>.</p>
+      </div>
+
+      <div class="scan-form-card">
+        <div class="card-title">Hedef IP Adresi</div>
+        <form id="scanForm" onsubmit="startScan(event)">
+          <div class="input-group">
+            <input type="text" id="ipInput" class="ip-input"
+              placeholder="192.168.1.1"
+              autocomplete="off" spellcheck="false" />
+            <button type="submit" class="btn-primary" id="scanBtn">Tara</button>
+          </div>
+          <p class="error-msg" id="errorMsg"></p>
+        </form>
+      </div>
+
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <p id="loadingText">Taranıyor, lütfen bekleyin...</p>
+      </div>
+
+      <div class="results-wrap" id="resultsWrap"></div>
+    </section>
+
+    <!-- ══════════════ HISTORY ══════════════ -->
+    <section id="page-history" class="page">
+      <div class="page-header">
+        <h1>Tarama Geçmişi</h1>
+        <p>Bu oturumda gerçekleştirilen tüm taramalar.</p>
+      </div>
+      <button class="btn-clear" onclick="clearHistory()">Geçmişi Temizle</button>
+      <div id="historyList"></div>
+    </section>
+
+    <!-- ══════════════ ABOUT ══════════════ -->
+    <section id="page-about" class="page">
+      <div class="page-header">
+        <h1>Hakkında</h1>
+        <p>SecPanel &mdash; yetkili güvenlik testleri için geliştirilmiş port tarama ve açık tespiti aracı.</p>
+      </div>
+
+      <div class="about-grid">
+        <div class="about-card">
+          <h3>Nasıl Kullanılır?</h3>
+          <ul>
+            <li>IP Tarayıcı sayfasına gidin.</li>
+            <li>Test makinenizin IPv4 adresini girin (örn: 192.168.1.100).</li>
+            <li>"Tara" butonuna basın &mdash; 15 port paralel taranır.</li>
+            <li>Uyarılar kritik / uyarı / bilgi seviyelerinde gösterilir.</li>
+            <li>Sonuçlar otomatik olarak geçmiş sayfasına kaydedilir.</li>
+          </ul>
+        </div>
+
+        <div class="about-card">
+          <h3>Taranan Portlar ve Uyarı Seviyeleri</h3>
+          <table class="port-table">
+            <thead>
+              <tr>
+                <th>Port</th><th>Servis</th><th>Seviye</th><th>Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>21</td><td>FTP</td><td><span class="severity warning">UYARI</span></td><td>Şifresiz kimlik doğrulama</td></tr>
+              <tr><td>22</td><td>SSH</td><td><span class="severity warning">UYARI</span></td><td>Brute-force riski</td></tr>
+              <tr><td>23</td><td>Telnet</td><td><span class="severity critical">KRİTİK</span></td><td>Şifresiz iletişim</td></tr>
+              <tr><td>25</td><td>SMTP</td><td><span class="severity warning">UYARI</span></td><td>Open relay riski</td></tr>
+              <tr><td>53</td><td>DNS</td><td><span class="severity info">BİLGİ</span></td><td>Zone transfer kontrolü</td></tr>
+              <tr><td>80</td><td>HTTP</td><td><span class="severity info">BİLGİ</span></td><td>HTTPS yönlendirmesi</td></tr>
+              <tr><td>110</td><td>POP3</td><td><span class="severity warning">UYARI</span></td><td>Şifresiz e-posta</td></tr>
+              <tr><td>143</td><td>IMAP</td><td><span class="severity warning">UYARI</span></td><td>Şifresiz e-posta</td></tr>
+              <tr><td>443</td><td>HTTPS</td><td><span class="severity info">BİLGİ</span></td><td>SSL geçerlilik kontrolü</td></tr>
+              <tr><td>445</td><td>SMB</td><td><span class="severity critical">KRİTİK</span></td><td>EternalBlue / WannaCry</td></tr>
+              <tr><td>3306</td><td>MySQL</td><td><span class="severity critical">KRİTİK</span></td><td>DB internete açık</td></tr>
+              <tr><td>3389</td><td>RDP</td><td><span class="severity critical">KRİTİK</span></td><td>Uzak masaüstü riski</td></tr>
+              <tr><td>5432</td><td>PostgreSQL</td><td><span class="severity critical">KRİTİK</span></td><td>DB internete açık</td></tr>
+              <tr><td>8080</td><td>HTTP-Alt</td><td><span class="severity warning">UYARI</span></td><td>Panel erişim riski</td></tr>
+              <tr><td>8443</td><td>HTTPS-Alt</td><td><span class="severity warning">UYARI</span></td><td>Panel erişim riski</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="about-card">
+          <h3>Teknik Bilgiler</h3>
+          <p>Uygulama Node.js ile yazılmış olup harici bağımlılık içermez. Port kontrolü TCP SYN bağlantısı ile yapılır, her port için 1.5 saniye zaman aşımı uygulanır. Tüm portlar paralel taranır.</p>
+        </div>
+
+        <div class="about-card" style="border-color:rgba(245,158,11,0.3);background:var(--orange-dim)">
+          <h3 style="color:var(--orange)">&#x26A0;&#xFE0F; Yasal Uyarı</h3>
+          <p>Bu araç yalnızca <strong>sahip olduğunuz veya yazılı izin aldığınız</strong> sistemlerde kullanılabilir. İzinsiz sistemleri taramak Türk Ceza Kanunu kapsamında suç teşkil eder.</p>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+/* ── Navigation ── */
+const PAGE_TITLES = {
+  dashboard: "Dashboard",
+  scanner:   "IP Tarayıcı",
+  history:   "Tarama Geçmişi",
+  about:     "Hakkında",
+};
+
+function navigate(pageId, btn) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+  document.getElementById("page-" + pageId).classList.add("active");
+  if (btn) btn.classList.add("active");
+  document.getElementById("breadcrumbPage").textContent = PAGE_TITLES[pageId] || pageId;
+  closeSidebar();
+  if (pageId === "history") renderHistory();
+  if (pageId === "dashboard") updateDashStats();
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+}
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("sidebarOverlay").classList.remove("open");
+}
+
+/* ── Clock ── */
+function updateClock() {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString("tr-TR");
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ── History store ── */
+let scanHistory = [];
+
+function saveToHistory(data) {
+  scanHistory.unshift({ ...data, id: Date.now() });
+  updateHistoryBadge();
+  updateDashStats();
+}
+
+function clearHistory() {
+  scanHistory = [];
+  updateHistoryBadge();
+  updateDashStats();
+  renderHistory();
+}
+
+function updateHistoryBadge() {
+  const badge = document.getElementById("historyBadge");
+  if (scanHistory.length > 0) {
+    badge.textContent = scanHistory.length;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function updateDashStats() {
+  const total    = scanHistory.length;
+  const critical = scanHistory.filter(s => s.warnings.some(w => w.level === "critical")).length;
+  const clean    = scanHistory.filter(s => !s.warnings.some(w => w.level === "critical")).length;
+  const ports    = scanHistory.reduce((acc, s) => acc + s.openPorts.length, 0);
+
+  document.getElementById("stat-total").textContent    = total;
+  document.getElementById("stat-critical").textContent = critical;
+  document.getElementById("stat-clean").textContent    = clean;
+  document.getElementById("stat-ports").textContent    = ports;
+
+  const last = scanHistory[0];
+  const el   = document.getElementById("dash-last-scan");
+  if (!last) {
+    el.textContent = "Henüz tarama yapılmadı.";
+    el.style.color = "var(--muted)";
+    return;
+  }
+  const critCount = last.warnings.filter(w => w.level === "critical").length;
+  el.style.color = "var(--text)";
+  el.innerHTML = `
+    <strong style="font-family:monospace">${last.ip}</strong>
+    &nbsp;—&nbsp;
+    <span style="color:${critCount > 0 ? '#f87171' : '#22c55e'}">
+      ${critCount > 0 ? critCount + " kritik açık" : "Temiz"}
+    </span>
+    &nbsp;·&nbsp; ${last.openPorts.length} açık port
+    &nbsp;·&nbsp; <span style="color:var(--muted)">${new Date(last.timestamp).toLocaleString("tr-TR")}</span>
+  `;
+}
+
+/* ── History render ── */
+const PORT_NAMES = {
+  21:"FTP",22:"SSH",23:"Telnet",25:"SMTP",53:"DNS",
+  80:"HTTP",110:"POP3",143:"IMAP",443:"HTTPS",445:"SMB",
+  3306:"MySQL",3389:"RDP",5432:"PostgreSQL",8080:"HTTP-Alt",8443:"HTTPS-Alt"
+};
+
+function renderHistory() {
+  const el = document.getElementById("historyList");
+  if (scanHistory.length === 0) {
+    el.innerHTML = `<div class="history-empty">
+      <div class="big">&#x1F4CB;</div>
+      <p>Henüz tarama yapılmadı.<br>IP Tarayıcı sayfasından tarama başlatın.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div class="history-list">${scanHistory.map(s => {
+    const hasCrit = s.warnings.some(w => w.level === "critical");
+    const portStr = s.openPorts.length
+      ? s.openPorts.map(p => PORT_NAMES[p.port] || p.port).join(", ")
+      : "—";
+    return `<div class="history-row" onclick="showHistoryDetail(${s.id})">
+      <div class="h-ip">${s.ip}</div>
+      <div class="h-open-ports">${portStr}</div>
+      <span class="h-status ${hasCrit ? 'bad' : 'good'}">${hasCrit ? 'KRİTİK' : 'TEMİZ'}</span>
+      <div class="h-meta">${new Date(s.timestamp).toLocaleTimeString("tr-TR")}</div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function showHistoryDetail(id) {
+  const entry = scanHistory.find(s => s.id === id);
+  if (!entry) return;
+  navigate('scanner', document.querySelector('.nav-item:nth-child(3)'));
+  // pre-fill and show result
+  document.getElementById("ipInput").value = entry.ip;
+  renderScanResult(entry);
+}
+
+/* ── Scanner ── */
+function isValidIPv4(ip) {
+  return /^(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)$/.test(ip.trim());
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorMsg");
+  el.textContent = "⛔ " + msg;
+  el.style.display = "block";
+}
+function hideError() {
+  document.getElementById("errorMsg").style.display = "none";
+}
+function setLoading(active, ip = "") {
+  document.getElementById("loadingBox").style.display = active ? "block" : "none";
+  document.getElementById("loadingText").textContent = ip
+    ? `${ip} taranıyor — lütfen bekleyin...` : "Taranıyor...";
+  document.getElementById("resultsWrap").style.display = "none";
+  document.getElementById("ipInput").disabled = active;
+  document.getElementById("scanBtn").disabled = active;
+  document.getElementById("scanBtn").textContent = active ? "Taranıyor..." : "Tara";
+}
+
+async function startScan(e) {
+  e.preventDefault();
+  hideError();
+
+  const ip = document.getElementById("ipInput").value.trim();
+  if (!isValidIPv4(ip)) {
+    showError("Lütfen geçerli bir IPv4 adresi girin. Örn: 192.168.1.1");
+    return;
+  }
+
+  setLoading(true, ip);
+  try {
+    const res  = await fetch("/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Sunucu hatası.");
+    saveToHistory(data);
+    renderScanResult(data);
+  } catch (err) {
+    showError(err.message || "Bilinmeyen bir hata oluştu.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+const LEVEL_META = {
+  critical: { icon: "⛔", label: "KRİTİK" },
+  warning:  { icon: "⚠️",  label: "UYARI"   },
+  info:     { icon: "ℹ️",  label: "BİLGİ"   },
+};
+
+function renderScanResult(data) {
+  const critCount = data.warnings.filter(w => w.level === "critical").length;
+  const warnCount = data.warnings.filter(w => w.level === "warning").length;
+  const netType   = data.isPrivate ? "Yerel Ağ" : "Genel İnternet";
+  const netColor  = data.isPrivate ? "#22c55e" : "#f59e0b";
+
+  const portSection = data.openPorts.length ? `
+    <p class="section-label">Açık Portlar</p>
+    <div class="port-tags">
+      ${data.openPorts.map(p => `<span class="port-tag">${p.port} <em>(${PORT_NAMES[p.port]||"?"})</em></span>`).join("")}
+    </div>
+  ` : "";
+
+  const warnItems = data.warnings.map(w => {
+    const m = LEVEL_META[w.level];
+    return `<div class="warn-item ${w.level}">
+      <span class="warn-ico">${m.icon}</span>
+      <div>
+        <span class="warn-level-tag">${m.label}</span>
+        <p class="warn-text">${w.message}</p>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("resultsWrap").innerHTML = `
+    <div class="summary-row">
+      <div class="sum-card">
+        <div class="s-num" style="color:#60a5fa">${data.scannedPorts}</div>
+        <div class="s-lbl">Taranan Port</div>
+      </div>
+      <div class="sum-card">
+        <div class="s-num" style="color:${data.openPorts.length>0?'#f59e0b':'#22c55e'}">${data.openPorts.length}</div>
+        <div class="s-lbl">Açık Port</div>
+      </div>
+      <div class="sum-card">
+        <div class="s-num" style="color:${critCount>0?'#f87171':'#22c55e'}">${critCount}</div>
+        <div class="s-lbl">Kritik Uyarı</div>
+      </div>
+    </div>
+
+    <div class="meta-bar">
+      <div class="meta-item">
+        <div class="m-lbl">Hedef IP</div>
+        <div class="m-val" style="font-family:monospace">${data.ip}</div>
+      </div>
+      <div class="meta-item">
+        <div class="m-lbl">Ağ Türü</div>
+        <div class="m-val" style="color:${netColor}">${netType}</div>
+      </div>
+      <div class="meta-item">
+        <div class="m-lbl">Tarama Zamanı</div>
+        <div class="m-val" style="font-size:13px;color:var(--text2)">${new Date(data.timestamp).toLocaleString("tr-TR")}</div>
+      </div>
+    </div>
+
+    ${portSection}
+
+    <p class="section-label">Güvenlik Uyarıları (${data.warnings.length})</p>
+    <div class="warn-list">${warnItems}</div>
+
+    <div class="verdict ${critCount>0?'bad':'good'}">
+      <p class="v-main">${critCount>0
+        ? `${critCount} kritik, ${warnCount} uyarı seviyesinde açık tespit edildi.`
+        : "Kritik güvenlik açığı tespit edilmedi."
+      }</p>
+      <p class="v-sub">Sonuçlar yalnızca taranan 15 portu kapsar. Tam penetrasyon testi için profesyonel araçlar kullanın.</p>
+    </div>
+  `;
+
+  document.getElementById("resultsWrap").style.display = "block";
+}
+</script>
+</body>
+</html>

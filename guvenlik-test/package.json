@@ -1,0 +1,11 @@
+{
+  "name": "guvenlik-test",
+  "version": "1.0.0",
+  "description": "IP tabanlı güvenlik açığı test aracı",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {}
+}
