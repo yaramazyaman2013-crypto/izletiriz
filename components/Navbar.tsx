@@ -80,6 +80,7 @@ export default function Navbar() {
               { label: "Komedi", href: "/kategori?genre=Komedi" },
               { label: "Dram", href: "/kategori?genre=Dram" },
               { label: "🎨 Thumbnail", href: "/thumbnail" },
+              { label: "🎬 Video", href: "/video" },
             ].map((item) => (
               <Link
                 key={item.href}
@@ -169,6 +170,7 @@ export default function Navbar() {
               { label: "Komedi", href: "/kategori?genre=Komedi" },
               { label: "Dram", href: "/kategori?genre=Dram" },
               { label: "🎨 Thumbnail Stüdyo", href: "/thumbnail" },
+              { label: "🎬 AI Video", href: "/video" },
               { label: "Ara", href: "/ara" },
             ].map((item) => (
               <Link
