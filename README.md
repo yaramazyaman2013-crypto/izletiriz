@@ -1,5 +1,45 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Sayfalar
+
+- `/` — İzletiriz film sitesi (ana sayfa, `app/page.tsx`)
+- `/thumbnail` — Viral YouTube thumbnail stüdyosu
+- `/video` — AI anlatım videosu stüdyosu (senaryo + seslendirme + 2D animasyon → .webm)
+
+## Vercel'e Deploy (Next.js — index.html GEREKMEZ)
+
+Bu bir Next.js uygulamasıdır; Vercel otomatik algılar. Statik `index.html`
+**gerekmez** (ana sayfa `app/page.tsx`'tir; kökteki eski `index.html` kullanılmaz).
+
+1. Bu repoyu GitHub'a push et (zaten yapıldı).
+2. [vercel.com/new](https://vercel.com/new) → bu repoyu **Import** et.
+3. Framework otomatik **Next.js** seçilir; Build Command `next build`, ayar
+   değiştirmene gerek yok. **Deploy**'a bas.
+4. (Opsiyonel) Gerçek AI için: **Project Settings → Environment Variables**
+   bölümüne anahtar ekle, sonra yeniden deploy et. Bkz. `.env.example`.
+
+### AI sağlayıcıları
+
+| Özellik | OpenRouter (`OPENROUTER_API_KEY`) | OpenAI (`OPENAI_API_KEY`) |
+|---|---|---|
+| Video senaryosu (LLM) | ✅ tercih edilen | ✅ yedek |
+| Thumbnail AI arka plan (görsel) | ✅ (image modeli) | ✅ yedek |
+| Video seslendirme (TTS) | ❌ desteklemez | ✅ gerekli |
+
+> AI özellikleri anahtarsız da çalışır: thumbnail'de prompt'tan prosedürel arka
+> plan, videoda iskelet senaryo + tarayıcı sesi (altyazılı) devreye girer.
+> **OpenRouter** anahtarı senaryo + görsel için yeterlidir; **gerçek AI sesli
+> video** için ayrıca `OPENAI_API_KEY` gerekir (OpenRouter'da TTS yoktur).
+
+### Yerelde çalıştırma
+
+```bash
+npm install
+cp .env.example .env.local   # opsiyonel: OPENAI_API_KEY ekle
+npm run dev                   # http://localhost:3000
+```
+
+
 ## Getting Started
 
 First, run the development server:
