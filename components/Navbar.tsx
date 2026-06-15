@@ -79,6 +79,7 @@ export default function Navbar() {
               { label: "Aksiyon", href: "/kategori?genre=Aksiyon" },
               { label: "Komedi", href: "/kategori?genre=Komedi" },
               { label: "Dram", href: "/kategori?genre=Dram" },
+              { label: "🎨 Thumbnail", href: "/thumbnail" },
             ].map((item) => (
               <Link
                 key={item.href}
@@ -167,6 +168,7 @@ export default function Navbar() {
               { label: "Aksiyon", href: "/kategori?genre=Aksiyon" },
               { label: "Komedi", href: "/kategori?genre=Komedi" },
               { label: "Dram", href: "/kategori?genre=Dram" },
+              { label: "🎨 Thumbnail Stüdyo", href: "/thumbnail" },
               { label: "Ara", href: "/ara" },
             ].map((item) => (
               <Link
