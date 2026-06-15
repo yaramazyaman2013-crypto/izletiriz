@@ -16,11 +16,20 @@ Bu bir Next.js uygulamasıdır; Vercel otomatik algılar. Statik `index.html`
 3. Framework otomatik **Next.js** seçilir; Build Command `next build`, ayar
    değiştirmene gerek yok. **Deploy**'a bas.
 4. (Opsiyonel) Gerçek AI için: **Project Settings → Environment Variables**
-   bölümüne `OPENAI_API_KEY` ekle, sonra yeniden deploy et. Bkz. `.env.example`.
+   bölümüne anahtar ekle, sonra yeniden deploy et. Bkz. `.env.example`.
 
-> AI özellikleri anahtarsız da çalışır: thumbnail'de prompt'tan prosedürel
-> arka plan, videoda iskelet senaryo + tarayıcı sesi (altyazılı) devreye girer.
-> `OPENAI_API_KEY` eklersen gerçek AI görsel/senaryo/seslendirme aktifleşir.
+### AI sağlayıcıları
+
+| Özellik | OpenRouter (`OPENROUTER_API_KEY`) | OpenAI (`OPENAI_API_KEY`) |
+|---|---|---|
+| Video senaryosu (LLM) | ✅ tercih edilen | ✅ yedek |
+| Thumbnail AI arka plan (görsel) | ✅ (image modeli) | ✅ yedek |
+| Video seslendirme (TTS) | ❌ desteklemez | ✅ gerekli |
+
+> AI özellikleri anahtarsız da çalışır: thumbnail'de prompt'tan prosedürel arka
+> plan, videoda iskelet senaryo + tarayıcı sesi (altyazılı) devreye girer.
+> **OpenRouter** anahtarı senaryo + görsel için yeterlidir; **gerçek AI sesli
+> video** için ayrıca `OPENAI_API_KEY` gerekir (OpenRouter'da TTS yoktur).
 
 ### Yerelde çalıştırma
 

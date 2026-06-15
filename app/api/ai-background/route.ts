@@ -1,8 +1,10 @@
 // AI background generator for the thumbnail studio.
 //
-// If an OpenAI API key is configured (OPENAI_API_KEY), it generates a real
-// 16:9 image. Otherwise it falls back to a vibrant procedural background
-// derived from the prompt, so the feature works fully offline.
+// Uses OpenRouter (preferred) or OpenAI to generate a real 16:9 image when a
+// key is configured. Otherwise it falls back to a vibrant procedural
+// background derived from the prompt, so the feature works fully offline.
+
+import { generateImage, imageSource } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 
@@ -57,32 +59,6 @@ function proceduralSvg(prompt: string): string {
   return `data:image/svg+xml;base64,${b64}`;
 }
 
-async function openAiImage(prompt: string, key: string): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-image-1",
-      prompt: `YouTube thumbnail background, 16:9, vivid, high contrast, no text: ${prompt}`,
-      size: "1536x1024",
-      n: 1,
-    }),
-  });
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${detail.slice(0, 200)}`);
-  }
-  const data = await res.json();
-  const b64 = data?.data?.[0]?.b64_json;
-  if (b64) return `data:image/png;base64,${b64}`;
-  const url = data?.data?.[0]?.url;
-  if (url) return url;
-  throw new Error("OpenAI: no image returned");
-}
-
 export async function POST(request: Request) {
   let prompt = "";
   try {
@@ -92,19 +68,17 @@ export async function POST(request: Request) {
     /* empty body */
   }
 
-  const key = process.env.OPENAI_API_KEY;
-  if (key) {
+  const source = imageSource();
+  if (source) {
     try {
-      const url = await openAiImage(prompt, key);
-      return Response.json({ url, source: "openai" });
+      const url = await generateImage(prompt);
+      if (url) return Response.json({ url, source });
     } catch (err) {
       // Fall through to procedural so the user still gets a usable result.
       return Response.json({
         url: proceduralSvg(prompt),
         source: "procedural",
-        note: `AI sağlayıcı hatası, prosedürel arka plana geçildi: ${
-          (err as Error).message
-        }`,
+        note: `AI sağlayıcı hatası, prosedürel arka plana geçildi: ${(err as Error).message}`,
       });
     }
   }
@@ -112,6 +86,6 @@ export async function POST(request: Request) {
   return Response.json({
     url: proceduralSvg(prompt),
     source: "procedural",
-    note: "OPENAI_API_KEY tanımlı değil — prompt'tan prosedürel arka plan üretildi.",
+    note: "AI anahtarı (OPENROUTER_API_KEY / OPENAI_API_KEY) yok — prompt'tan prosedürel arka plan üretildi.",
   });
 }

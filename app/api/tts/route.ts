@@ -15,9 +15,13 @@ export async function POST(request: Request) {
     /* empty body */
   }
 
+  // OpenRouter has no speech endpoint, so TTS requires an OpenAI key.
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    return Response.json({ available: false, reason: "OPENAI_API_KEY tanımlı değil" });
+    return Response.json({
+      available: false,
+      reason: "OPENAI_API_KEY yok (OpenRouter TTS desteklemez) — tarayıcı sesi kullanılacak",
+    });
   }
   if (!text) {
     return Response.json({ available: false, reason: "Metin boş" });

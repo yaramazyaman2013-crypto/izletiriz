@@ -4,6 +4,8 @@
 // Without a key it builds a usable scaffold from the topic and any notes the
 // user pasted, so the studio still works offline.
 
+import { chatComplete, hasChat } from "@/lib/ai";
+
 export const dynamic = "force-dynamic";
 
 type SceneSpec = {
@@ -106,7 +108,7 @@ function fallbackScript(topic: string, minutes: number, notes: string): SceneSpe
   return scenes;
 }
 
-async function llmScript(topic: string, minutes: number, notes: string, key: string): Promise<SceneSpec[]> {
+async function llmScript(topic: string, minutes: number, notes: string): Promise<SceneSpec[]> {
   const sceneCount = Math.max(4, Math.round(minutes * 3));
   const sys =
     "You are a scriptwriter for short animated explainer videos. " +
@@ -118,23 +120,14 @@ async function llmScript(topic: string, minutes: number, notes: string, key: str
     notes ? "Use these notes:\n" + notes : "No extra notes."
   }\nReturn ${sceneCount} scenes starting with a title scene and ending with an outro.`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: 0.8,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: user + '\nWrap the array as {"scenes": [...]}.' },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(content);
+  const content = await chatComplete(
+    [
+      { role: "system", content: sys },
+      { role: "user", content: user + '\nWrap the array as {"scenes": [...]}.' },
+    ],
+    true
+  );
+  const parsed = JSON.parse(content || "{}");
   const arr: unknown = Array.isArray(parsed) ? parsed : parsed.scenes;
   if (!Array.isArray(arr)) throw new Error("LLM returned no scenes array");
   return arr.map((s) => {
@@ -163,11 +156,10 @@ export async function POST(request: Request) {
     /* empty body */
   }
 
-  const key = process.env.OPENAI_API_KEY;
-  if (key && topic) {
+  if (hasChat() && topic) {
     try {
-      const scenes = await llmScript(topic, minutes, notes, key);
-      if (scenes.length) return Response.json({ scenes, source: "openai" });
+      const scenes = await llmScript(topic, minutes, notes);
+      if (scenes.length) return Response.json({ scenes, source: "ai" });
     } catch (err) {
       return Response.json({
         scenes: fallbackScript(topic, minutes, notes),
@@ -180,8 +172,8 @@ export async function POST(request: Request) {
   return Response.json({
     scenes: fallbackScript(topic, minutes, notes),
     source: "fallback",
-    note: key
+    note: hasChat()
       ? "Konu boş — iskelet senaryo üretildi."
-      : "OPENAI_API_KEY tanımlı değil — konudan/notlardan iskelet senaryo üretildi.",
+      : "AI anahtarı (OPENROUTER_API_KEY / OPENAI_API_KEY) yok — konudan/notlardan iskelet senaryo üretildi.",
   });
 }
