@@ -1,5 +1,36 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Sayfalar
+
+- `/` — İzletiriz film sitesi (ana sayfa, `app/page.tsx`)
+- `/thumbnail` — Viral YouTube thumbnail stüdyosu
+- `/video` — AI anlatım videosu stüdyosu (senaryo + seslendirme + 2D animasyon → .webm)
+
+## Vercel'e Deploy (Next.js — index.html GEREKMEZ)
+
+Bu bir Next.js uygulamasıdır; Vercel otomatik algılar. Statik `index.html`
+**gerekmez** (ana sayfa `app/page.tsx`'tir; kökteki eski `index.html` kullanılmaz).
+
+1. Bu repoyu GitHub'a push et (zaten yapıldı).
+2. [vercel.com/new](https://vercel.com/new) → bu repoyu **Import** et.
+3. Framework otomatik **Next.js** seçilir; Build Command `next build`, ayar
+   değiştirmene gerek yok. **Deploy**'a bas.
+4. (Opsiyonel) Gerçek AI için: **Project Settings → Environment Variables**
+   bölümüne `OPENAI_API_KEY` ekle, sonra yeniden deploy et. Bkz. `.env.example`.
+
+> AI özellikleri anahtarsız da çalışır: thumbnail'de prompt'tan prosedürel
+> arka plan, videoda iskelet senaryo + tarayıcı sesi (altyazılı) devreye girer.
+> `OPENAI_API_KEY` eklersen gerçek AI görsel/senaryo/seslendirme aktifleşir.
+
+### Yerelde çalıştırma
+
+```bash
+npm install
+cp .env.example .env.local   # opsiyonel: OPENAI_API_KEY ekle
+npm run dev                   # http://localhost:3000
+```
+
+
 ## Getting Started
 
 First, run the development server:
