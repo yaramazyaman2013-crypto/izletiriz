@@ -64,7 +64,7 @@ export async function chatComplete(messages: ChatMessage[], jsonMode = false): P
 // OpenRouter image generation via a multimodal model that returns images in
 // the chat response.
 async function openRouterImage(prompt: string, key: string): Promise<string> {
-  const model = process.env.OPENROUTER_IMAGE_MODEL || "google/gemini-2.5-flash-image-preview";
+  const model = process.env.OPENROUTER_IMAGE_MODEL || "google/gemini-2.5-flash-image";
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, ...orHeaders() },
@@ -79,7 +79,14 @@ async function openRouterImage(prompt: string, key: string): Promise<string> {
       ],
     }),
   });
-  if (!res.ok) throw new Error(`OpenRouter image ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 200);
+    const hint =
+      res.status === 404
+        ? ` — '${model}' görsel modeli bulunamadı. OPENROUTER_IMAGE_MODEL ile geçerli bir görsel modeli ayarla.`
+        : "";
+    throw new Error(`OpenRouter image ${res.status}: ${detail}${hint}`);
+  }
   const data = await res.json();
   const msg = data?.choices?.[0]?.message;
   const url =
